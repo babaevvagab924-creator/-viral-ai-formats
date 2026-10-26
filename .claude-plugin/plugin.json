@@ -1,0 +1,9 @@
+{
+  "name": "viral-ai-formats",
+  "description": "24 proven short-video formats (Reels, TikTok, Shorts) as skills: hook, timed storyboard, frame prompts, then video prompts for Kling, Veo, Seedance, Higgsfield and Nano Banana.",
+  "version": "1.0.0",
+  "author": { "name": "babaevvagab924-creator" },
+  "homepage": "https://github.com/babaevvagab924-creator/-viral-ai-formats",
+  "license": "MIT",
+  "keywords": ["ai-video", "reels", "tiktok", "shorts", "prompts", "storyboard", "kling", "veo", "seedance"]
+}

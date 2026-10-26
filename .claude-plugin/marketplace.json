@@ -1,0 +1,12 @@
+{
+  "name": "viral-ai-formats",
+  "owner": { "name": "babaevvagab924-creator" },
+  "plugins": [
+    {
+      "name": "viral-ai-formats",
+      "source": "./",
+      "description": "24 proven short-video formats as skills — storyboard frame prompts first, then video prompts.",
+      "version": "1.0.0"
+    }
+  ]
+}
