@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/banner.png" alt="Viral AI Formats — 24 short-video formats as AI agent skills" width="100%">
+
 # 🎬 Viral AI Formats
 
 **24 proven short-video formats as AI agent skills.**
@@ -9,6 +11,10 @@ Turn a one-line idea into a hook, a storyboard, frame prompts and video prompts 
 ![works with](https://img.shields.io/badge/works%20with-Claude%20·%20Codex%20·%20any%20SKILL.md%20agent-8a5cf6)
 ![models](https://img.shields.io/badge/prompts%20for-Kling%20·%20Veo%20·%20Seedance%20·%20Higgsfield%20·%20Nano%20Banana-00b3a4)
 ![license](https://img.shields.io/badge/license-MIT-blue)
+
+<br><br>
+
+<img src="assets/demo.gif" alt="Demo: one sentence becomes a format, a timed storyboard, frame prompts and video prompts" width="100%">
 
 </div>
 
