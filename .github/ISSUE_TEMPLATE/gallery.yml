@@ -1,0 +1,27 @@
+name: 🎬 Gallery submission
+description: Share a video you made with one of the formats
+title: "Gallery: <format-name>"
+labels: ["gallery"]
+body:
+  - type: input
+    id: format
+    attributes:
+      label: Format used
+      placeholder: what-if-world
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link to your video (Reels / TikTok / Shorts / X)
+    validations:
+      required: true
+  - type: input
+    id: models
+    attributes:
+      label: Models used
+      placeholder: Nano Banana + Kling
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything you changed or learned?

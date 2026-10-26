@@ -27,6 +27,8 @@ Agent:  → picks "How They Lived"
         → captions, hashtags, sound
 ```
 
+👉 **See a complete run:** [examples/what-if-world-full-run.md](examples/what-if-world-full-run.md) — one sentence in, 9 frame prompts + 9 video prompts out.
+
 ## Why this exists
 
 - **Format first, not film first.** Existing AI-filmmaking skills are built for cinema. Short-form lives on formats: POV drops, tier lists, satisfying cuts, cliffhanger series.
@@ -102,7 +104,9 @@ Each skill ships with `references/models.md`: a cheatsheet for adapting prompts 
 
 ## Gallery
 
-> Made something with these skills? Open an issue or PR with your video link and the format you used — the best ones get featured here.
+> Made something with these skills? [Submit it here](../../issues/new?template=gallery.yml) — the best ones get featured in this README.
+>
+> Know a format that keeps going viral? [Suggest it](../../issues/new?template=new-format.yml).
 
 <!-- Add GIFs here: ![what-if-world example](assets/what-if-world.gif) -->
 

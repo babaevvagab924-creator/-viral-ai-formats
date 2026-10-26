@@ -1,0 +1,16 @@
+name: 💡 Suggest a new format
+description: A short-video format that keeps working and should become a skill
+title: "Format idea: <name>"
+labels: ["format-idea"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What is the format?
+      description: One or two sentences, plus 1–3 links to example videos.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it work? (hook, retention, shares)
