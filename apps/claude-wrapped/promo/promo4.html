@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Компромат — промо v4 (3D)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Onest:wght@500;700&family=JetBrains+Mono:wght@600&family=Caveat:wght@700&display=swap">
+<style>html,body{margin:0;background:#000}#out{display:block;width:360px;height:640px}#c,#gl{display:none}</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script>window.SKIP_SUBS = true; window.EMBEDDED = true;</script>
+<script src="promo3.js"></script>
+<script src="voice_env.js"></script>
+<script type="module">
+/* «Компромат» v4: the v3 film plays on the screen of a retro portrait CRT in a blue studio,
+   with a little talking spark-character ("маленький Клод") sitting on the monitor.
+   window.render4(t) draws frame t (seconds) deterministically into #out. */
+import * as THREE from "three";
+import { RoundedBoxGeometry } from "./vendor/RoundedBoxGeometry.js";
+import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
+
+const W = 1080, H = 1920, FPS = 30;
+const clamp = (v) => Math.max(0, Math.min(1, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const io = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const lerp = (a, b, p) => a + (b - a) * p;
+
+/* ---------- renderer ---------- */
+const glc = document.createElement("canvas"); glc.id = "gl"; glc.width = W; glc.height = H; document.body.append(glc);
+const renderer = new THREE.WebGLRenderer({ canvas: glc, antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H, false); renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.82;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.background = new THREE.Color("#1a2fd6");
+const camera = new THREE.PerspectiveCamera(34, W / H, 0.05, 60);
+
+/* ---------- materials ---------- */
+const beige = new THREE.MeshStandardMaterial({ color: "#d6c3a0", roughness: 0.55, metalness: 0 });
+const beigeDark = new THREE.MeshStandardMaterial({ color: "#b9a682", roughness: 0.6 });
+const darkPlastic = new THREE.MeshStandardMaterial({ color: "#2a2732", roughness: 0.5 });
+const keyGrey = new THREE.MeshStandardMaterial({ color: "#8f8a85", roughness: 0.5 });
+const coral = new THREE.MeshStandardMaterial({ color: "#e0784f", roughness: 0.45 });
+const white = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.3 });
+const black = new THREE.MeshStandardMaterial({ color: "#121015", roughness: 0.4 });
+
+function box(w, h, d, r, mat, segs = 4) { const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, segs, r), mat); m.castShadow = m.receiveShadow = true; return m; }
+
+/* ---------- studio: curved blue cyclorama + floor ---------- */
+{
+  const g = document.createElement("canvas"); g.width = 8; g.height = 512; const gx = g.getContext("2d");
+  const gr = gx.createLinearGradient(0, 0, 0, 512); gr.addColorStop(0, "#0a1690"); gr.addColorStop(0.55, "#1f3bff"); gr.addColorStop(1, "#3d55ff"); gx.fillStyle = gr; gx.fillRect(0, 0, 8, 512);
+  const tex = new THREE.CanvasTexture(g); tex.colorSpace = THREE.SRGBColorSpace;
+  const cyc = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 12, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5), new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide }));
+  cyc.position.set(0, 6, 4); scene.add(cyc);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(12, 64), new THREE.MeshStandardMaterial({ color: "#2338e0", roughness: 0.85 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+}
+
+/* ---------- computer case ---------- */
+const pc = new THREE.Group(); scene.add(pc);
+const caseBox = box(1.3, 0.42, 1.0, 0.05, beige); caseBox.position.set(0, 0.21, 0); pc.add(caseBox);
+const front = 0.501;
+{ const slot = box(0.5, 0.11, 0.02, 0.01, beigeDark); slot.position.set(0.28, 0.27, front); pc.add(slot);
+  const gap = box(0.42, 0.012, 0.02, 0.004, darkPlastic); gap.position.set(0.28, 0.28, front + 0.012); pc.add(gap);
+  const slot2 = box(0.5, 0.11, 0.02, 0.01, beigeDark); slot2.position.set(0.28, 0.13, front); pc.add(slot2);
+  const btn = box(0.07, 0.07, 0.03, 0.01, beigeDark); btn.position.set(-0.05, 0.25, front); pc.add(btn);
+  const dots = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.011, 0.011, 0.02, 10), darkPlastic, 30);
+  for (let i = 0; i < 30; i++) { const m = new THREE.Matrix4().makeRotationX(Math.PI / 2); m.setPosition(-0.5 + (i % 10) * 0.035, 0.3 - Math.floor(i / 10) * 0.05, front + 0.003); dots.setMatrixAt(i, m); } pc.add(dots); }
+const ledMat = new THREE.MeshStandardMaterial({ color: "#3cff6a", emissive: "#3cff6a", emissiveIntensity: 0 });
+{ const led = new THREE.Mesh(new THREE.SphereGeometry(0.012, 12, 12), ledMat); led.position.set(-0.05, 0.15, front + 0.01); pc.add(led); }
+
+/* ---------- portrait CRT monitor ---------- */
+const mon = new THREE.Group(); mon.position.set(0, 0.42, 0.05); scene.add(mon);
+{ const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 0.05, 48), beigeDark); foot.position.y = 0.025; foot.castShadow = true; mon.add(foot);
+  const neck = box(0.22, 0.08, 0.2, 0.03, beigeDark); neck.position.y = 0.08; mon.add(neck); }
+const MON_Y = 0.12, BW = 0.96, BH = 1.3, BD = 0.24;
+const bezel = box(BW, BH, BD, 0.07, beige, 6); bezel.position.set(0, MON_Y + BH / 2, 0); mon.add(bezel);
+{ // CRT tube behind
+  const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.58, 0.5, 4, 1), beige); tube.rotation.set(Math.PI / 2, Math.PI / 4, 0); tube.scale.set(0.82, 1, 1.0);
+  tube.position.set(0, MON_Y + BH / 2, -0.36); tube.castShadow = true; mon.add(tube);
+  const inset = box(0.8, 1.12, 0.03, 0.04, darkPlastic); inset.position.set(0, MON_Y + BH / 2 + 0.03, BD / 2 - 0.005); mon.add(inset);
+  const brand = box(0.16, 0.025, 0.01, 0.005, beigeDark); brand.position.set(-0.3, MON_Y + 0.07, BD / 2 + 0.003); mon.add(brand);
+  const pbtn = box(0.05, 0.03, 0.02, 0.006, beigeDark); pbtn.position.set(0.36, MON_Y + 0.07, BD / 2 + 0.004); mon.add(pbtn); }
+
+// screen: v3 film as a CRT
+const film = document.getElementById("c");
+const filmTex = new THREE.CanvasTexture(film); filmTex.colorSpace = THREE.SRGBColorSpace; filmTex.minFilter = THREE.LinearFilter; filmTex.generateMipmaps = false;
+const SW = 0.72, SH = 0.72 * 1660 / 1080;
+const crt = new THREE.ShaderMaterial({
+  uniforms: { map: { value: filmTex }, time: { value: 0 }, power: { value: 0 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `
+    uniform sampler2D map; uniform float time; uniform float power; varying vec2 vUv;
+    void main(){
+      vec2 uv = vUv * 2.0 - 1.0; uv *= 1.0 + 0.045 * dot(uv, uv); uv = uv * 0.5 + 0.5;
+      if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) { gl_FragColor = vec4(0.02,0.02,0.03,1.0); return; }
+      vec2 cuv = vec2(uv.x, 0.0625 + uv.y * 0.8646);           // crop 9:16 film to the tube
+      float ab = 0.0015;
+      vec3 col = vec3(texture2D(map, cuv + vec2(ab,0.)).r, texture2D(map, cuv).g, texture2D(map, cuv - vec2(ab,0.)).b);
+      col = pow(col, vec3(2.2));                                 // sRGB canvas -> linear
+      float scan = 0.82 + 0.18 * sin(uv.y * 1660.0 * 3.14159 / 2.0);
+      float mask = 0.92 + 0.08 * sin(uv.x * 1080.0 * 2.0);
+      vec2 v = uv * (1.0 - uv); float vig = pow(v.x * v.y * 16.0, 0.22);
+      float flick = 0.97 + 0.03 * sin(time * 120.0);
+      col *= scan * mask * vig * flick * 1.25;
+      // power-on: a white line that opens vertically
+      float lineH = smoothstep(0.0, 0.6, power) * 0.5;
+      float onMask = step(abs(uv.y - 0.5), lineH + 0.002) * step(abs(uv.x - 0.5), smoothstep(0.0, 0.25, power) * 0.5);
+      col = mix(vec3(0.015), col, onMask) + vec3(1.0) * onMask * (1.0 - smoothstep(0.3, 0.8, power)) * 0.8;
+      gl_FragColor = vec4(col, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }` });
+const screen = new THREE.Mesh(new THREE.PlaneGeometry(SW, SH), crt); screen.position.set(0, MON_Y + BH / 2 + 0.03, BD / 2 + 0.012); mon.add(screen);
+const glass = new THREE.Mesh(new THREE.PlaneGeometry(SW + 0.04, SH + 0.04), new THREE.MeshPhysicalMaterial({ color: "#ffffff", roughness: 0.04, metalness: 0, transparent: true, opacity: 0.12, clearcoat: 1, envMapIntensity: 2.4 }));
+glass.position.copy(screen.position); glass.position.z += 0.008; mon.add(glass);
+const screenLight = new THREE.PointLight("#9fb0ff", 1.6, 3.5, 1.6); screenLight.position.set(0, MON_Y + BH / 2, 0.75); mon.add(screenLight);
+
+// sticky notes
+function note(text, rot, px, py, seed) {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 256; const g = c.getContext("2d");
+  g.fillStyle = "#f6dd4a"; g.fillRect(0, 0, 256, 256); g.fillStyle = "rgba(0,0,0,.06)"; g.fillRect(0, 0, 256, 28);
+  g.fillStyle = "#2a2440"; g.font = '700 70px "Caveat", cursive'; g.textAlign = "center"; text.split("\n").forEach((l, i) => g.fillText(l, 128, 112 + i * 76));
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const geo = new THREE.PlaneGeometry(0.2, 0.2, 8, 8); const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) { const yy = pos.getY(i); pos.setZ(i, yy < 0 ? Math.pow(-yy * 5, 2) * 0.04 : 0); } geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: t, roughness: 0.9, side: THREE.DoubleSide })); m.position.set(px, py, BD / 2 + 0.006); m.rotation.z = rot; m.castShadow = true; mon.add(m); return m;
+}
+const notes = [];
+document.fonts.load('700 70px "Caveat"').then(() => { notes.push(note("321\n?!", 0.12, -0.38, MON_Y + BH - 0.12, 1), note("00:00\nсова", -0.1, 0.38, MON_Y + BH - 0.14, 2)); });
+
+/* ---------- keyboard ---------- */
+const kb = new THREE.Group(); kb.position.set(0, 0, 0.95); kb.rotation.x = 0.06; scene.add(kb);
+{ const base = box(1.36, 0.06, 0.46, 0.03, beige); base.position.y = 0.03; kb.add(base); }
+const KEYS = [];
+const keyGeo = new RoundedBoxGeometry(0.068, 0.04, 0.068, 2, 0.012);
+const keysBeige = new THREE.InstancedMesh(keyGeo, beigeDark, 100), keysGrey = new THREE.InstancedMesh(keyGeo, keyGrey, 40);
+keysBeige.castShadow = keysGrey.castShadow = true;
+{ let nb = 0, ng = 0;
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 17; c++) {
+    const grey = c >= 14 || (r === 0 && c % 4 === 0); const inst = grey ? keysGrey : keysBeige; const id = grey ? ng++ : nb++;
+    if ((grey && ng > 40) || (!grey && nb > 100)) continue;
+    KEYS.push({ inst, id, x: -0.62 + c * 0.077 + (c >= 14 ? 0.03 : 0), z: -0.16 + r * 0.077, seed: Math.random() });
+  }
+  keysBeige.count = nb; keysGrey.count = ng; kb.add(keysBeige, keysGrey); }
+
+/* ---------- little Claude: talking coral spark on top of the monitor ---------- */
+const claude = new THREE.Group(); claude.position.set(0.05, MON_Y + BH + 0.42 + 0.17, 0.02); scene.add(claude);
+const spark = new THREE.Group(); claude.add(spark);
+const core = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 24), coral); core.scale.set(1, 1, 0.7); core.castShadow = true; spark.add(core);
+const RAYS = []; claude.scale.setScalar(0.85);
+for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2, len = 0.11 + (i % 3) * 0.025; const ray = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, len, 6, 12), coral); ray.castShadow = true; const pivot = new THREE.Group(); pivot.rotation.z = a; ray.position.y = 0.12 + len / 2; pivot.add(ray); spark.add(pivot); RAYS.push({ pivot, ray, a, len }); }
+const eyeL = new THREE.Group(), eyeR = new THREE.Group();
+for (const [eye, ex] of [[eyeL, -0.045], [eyeR, 0.045]]) { const w = new THREE.Mesh(new THREE.SphereGeometry(0.03, 20, 16), white); w.scale.set(1, 1.25, 0.5); const p = new THREE.Mesh(new THREE.SphereGeometry(0.016, 16, 12), black); p.position.set(0, -0.004, 0.014); eye.add(w, p); eye.userData.pupil = p; eye.position.set(ex, 0.03, 0.085); spark.add(eye); }
+const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.032, 20, 14), new THREE.MeshStandardMaterial({ color: "#3a0f12", roughness: 0.6 })); mouth.position.set(0, -0.045, 0.082); mouth.scale.set(1.1, 0.2, 0.4); spark.add(mouth);
+const legs = [];
+for (const lx of [-0.05, 0.05]) { const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.018, 0.12, 4, 8), coral); leg.position.set(lx, -0.17, 0.08); leg.rotation.x = 1.2; leg.castShadow = true; claude.add(leg); legs.push(leg); }
+
+/* ---------- lights ---------- */
+const key = new THREE.DirectionalLight("#fff0dc", 2.1); key.position.set(-2.2, 4.2, 3.2); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); key.shadow.camera.left = -2.5; key.shadow.camera.right = 2.5; key.shadow.camera.top = 3; key.shadow.camera.bottom = -1; key.shadow.radius = 6; key.shadow.bias = -0.0005; scene.add(key);
+const rim = new THREE.DirectionalLight("#b48bff", 1.6); rim.position.set(2.6, 2.4, -2.5); scene.add(rim);
+scene.add(new THREE.HemisphereLight("#8fa2ff", "#1c2aa8", 0.45));
+
+/* ---------- camera choreography ---------- */
+const IMP = window.IMPACTS || [];
+function camAt(t) {
+  // [time, radius, angle(deg), height, lookY]
+  const K = [[0, 6.2, -16, 2.2, 1.35], [3.5, 4.0, -4, 1.7, 1.42], [11.5, 3.85, 5, 1.68, 1.42], [17.8, 3.8, -3, 1.68, 1.42], [17.9, 2.7, 0, 1.4, 1.3], [18.95, 2.7, 0, 1.4, 1.3], [19.4, 3.9, 4, 1.7, 1.42], [25.3, 4.0, -5, 1.72, 1.42], [29.5, 5.6, 10, 2.1, 1.25], [30, 5.7, 11, 2.15, 1.25]];
+  let i = 0; while (i < K.length - 2 && t > K[i + 1][0]) i++;
+  const a = K[i], b = K[i + 1], p = io(prog(t, a[0], b[0]));
+  const r = lerp(a[1], b[1], p), ang = lerp(a[2], b[2], p) * Math.PI / 180, y = lerp(a[3], b[3], p), ly = lerp(a[4], b[4], p);
+  const drift = 0.03 * Math.sin(t * 0.7), sway = 0.6 * Math.sin(t * 0.45) * Math.PI / 180;
+  return { pos: new THREE.Vector3(Math.sin(ang + sway) * r, y + drift, Math.cos(ang + sway) * r), look: new THREE.Vector3(0, ly, 0.1) };
+}
+
+/* ---------- 2D composite: grain, vignette, subtitles ---------- */
+const out = document.getElementById("out"), ox = out.getContext("2d");
+const grain = document.createElement("canvas"); grain.width = 270; grain.height = 480; { const g = grain.getContext("2d"), im = g.createImageData(270, 480); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } g.putImageData(im, 0, 0); }
+
+function render4(t) {
+  // film on the tube
+  window.render(t); filmTex.needsUpdate = true;
+  crt.uniforms.time.value = t; crt.uniforms.power.value = prog(t, 0.05, 0.6);
+  ledMat.emissiveIntensity = t > 0.05 ? 2.5 : 0;
+  // screen light picks up the film's average color
+  const px = film.getContext("2d").getImageData(540, 900, 1, 1).data; screenLight.color.setRGB(0.4 + px[0] / 400, 0.4 + px[1] / 400, 0.4 + px[2] / 400); screenLight.intensity = 1.6 * crt.uniforms.power.value;
+  // keyboard: typing during the call to action
+  const m = new THREE.Matrix4();
+  for (const k of KEYS) { const typing = t > 25.4 && t < 29.4 ? Math.max(0, Math.sin((t * 9 + k.seed * 40)) - 0.75) * 4 : 0; m.makeTranslation(k.x, 0.075 - 0.015 * Math.min(1, typing), k.z); k.inst.setMatrixAt(k.id, m); }
+  keysBeige.instanceMatrix.needsUpdate = keysGrey.instanceMatrix.needsUpdate = true;
+  // little Claude talks with the voice
+  const env = (window.VOICE_ENV || [])[Math.floor(t * FPS)] || 0, talking = env > 0.25;
+  mouth.scale.set(1.1 - env * 0.25, 0.15 + env * 0.95, 0.4);
+  spark.position.y = Math.abs(Math.sin(t * 7)) * 0.015 * (talking ? 1 : 0.3) + env * 0.01;
+  spark.rotation.z = Math.sin(t * 1.6) * 0.08; spark.rotation.y = Math.sin(t * 0.8) * 0.25;
+  RAYS.forEach((r, i) => { r.ray.scale.y = 1 + Math.sin(t * 6 + i) * 0.06 + env * 0.18; });
+  const surprised = t > 18.5 && t < 19.8, blink = (t % 3.3) < 0.12 && !surprised;
+  for (const e of [eyeL, eyeR]) { e.scale.y = blink ? 0.12 : surprised ? 1.35 : 1; e.userData.pupil.scale.setScalar(surprised ? 0.6 : 1); }
+  legs.forEach((l, i) => { l.rotation.x = 1.2 + Math.sin(t * 4 + i * 2) * 0.25; });
+  // camera + beat punch + shakes
+  const c = camAt(t); camera.position.copy(c.pos);
+  for (const im of IMP) { const d = t - im; if (d >= 0 && d < 0.5) { const a = 0.05 * Math.exp(-d * 8); camera.position.x += Math.sin(d * 90) * a; camera.position.y += Math.cos(d * 70) * a * 0.7; } }
+  camera.lookAt(c.look);
+  const beat = 60 / 125, bt = (t - 1.48) / beat, silent = t > 17.85 && t < 18.95;
+  camera.fov = 34 - (t > 1.48 && !silent ? 0.9 * Math.exp(-(bt - Math.floor(bt)) * 7) : 0); camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  // composite
+  ox.drawImage(glc, 0, 0);
+  ox.save(); ox.globalAlpha = 0.06; ox.globalCompositeOperation = "overlay"; ox.imageSmoothingEnabled = false; ox.drawImage(grain, (t * 977) % 60 - 60, (t * 613) % 60 - 60, W + 120, H + 120); ox.restore();
+  const v = ox.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.78); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,30,0.45)"); ox.fillStyle = v; ox.fillRect(0, 0, W, H);
+  window.drawSubsOn(ox, t);
+}
+window.render4 = render4; window.DUR = 30;
+window.ready4 = Promise.all([window.ready, document.fonts.load('700 70px "Caveat"')]).then(() => new Promise((r) => setTimeout(r, 300)));
+if (!navigator.webdriver) { const t0 = performance.now(); window.ready4.then(() => (function loop(now) { render4(((now - t0) / 1000) % 30); requestAnimationFrame(loop); })(performance.now())); }
+</script>
+</body>
+</html>
