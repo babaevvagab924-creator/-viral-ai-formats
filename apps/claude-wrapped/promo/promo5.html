@@ -13,6 +13,7 @@
 <script src="promo3.js"></script>
 <script src="voice_env.js"></script>
 <script>
+(() => {
 /* «Компромат» v5 — noir interrogation. Three Blender (Cycles) layers rendered once — room, pixel Claude with
    its shadow, hanging lamp — are animated and composited here; render5(t) is deterministic (60 fps export). */
 const W = 1080, H = 1920, DUR = 30;
@@ -110,7 +111,7 @@ function drawClaude(t) {
 function overlays(t) {
   // 0–3.5 hook: stamp + case number
   if (t < 3.6) {
-    stamp("КОМПРОМАТ", 540, 360, t, 1.3, 128, -0.09);
+    stamp("КОМПРОМАТ", 540, 360, t, 1.3, 96, -0.09);
     T(typed("ДЕЛО № 2026 · @leonario23", t, 1.8, 26), 540, 520, { size: 46, align: "center", c: C.paper, a: t > 3.2 ? 1 - prog(t, 3.2, 3.5) : 1 });
   }
   // 3.5–7.0 chats
@@ -125,14 +126,14 @@ function overlays(t) {
   }
   // 11.5–14.85 midnight
   if (t > 11.5 && t < 14.9) {
-    const a = prog(t, 11.5, 11.8) * (1 - prog(t, 14.6, 14.85)), cx = 810, cy = 330, R = 150;
+    const a = prog(t, 11.5, 11.8) * (1 - prog(t, 14.6, 14.85)), cx = 220, cy = 260, R = 120;
     x.save(); x.globalAlpha = a; x.strokeStyle = C.paper; x.lineWidth = 8; x.beginPath(); x.arc(cx, cy, R, 0, 6.283); x.stroke();
     for (let i = 0; i < 12; i++) { const an = i / 12 * 6.283; x.lineWidth = i % 3 ? 3 : 8; x.beginPath(); x.moveTo(cx + Math.cos(an) * (R - 22), cy + Math.sin(an) * (R - 22)); x.lineTo(cx + Math.cos(an) * (R - 6), cy + Math.sin(an) * (R - 6)); x.stroke(); }
     const hp = oC(prog(t, 11.6, 12.9)), hr = lerp(21, 24, hp), ha = hr / 12 * 6.283 - Math.PI / 2, ma = hr * 6.283 - Math.PI / 2;
-    x.lineCap = "round"; x.lineWidth = 12; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ha) * 80, cy + Math.sin(ha) * 80); x.stroke();
-    x.strokeStyle = C.red; x.lineWidth = 6; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ma) * 125, cy + Math.sin(ma) * 125); x.stroke(); x.restore();
-    if (t > 12.6) T("00:00", 300, 380, { size: 130, w: 900, f: D, c: C.red, glow: C.red, glowR: 40, s: 1 + 0.08 * Math.exp(-(t - 12.6) * 6) });
-    if (t > 13.3) T(typed("НОЧНАЯ СОВА", t, 13.3, 20), 300, 470, { size: 56, c: C.paper, ls: 6 });
+    x.lineCap = "round"; x.lineWidth = 12; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ha) * 64, cy + Math.sin(ha) * 64); x.stroke();
+    x.strokeStyle = C.red; x.lineWidth = 6; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ma) * 100, cy + Math.sin(ma) * 100); x.stroke(); x.restore();
+    if (t > 12.6) T("00:00", 540, 620, { size: 130, w: 900, f: D, c: C.red, align: "center", glow: C.red, glowR: 40, s: 1 + 0.08 * Math.exp(-(t - 12.6) * 6) });
+    if (t > 13.3) T(typed("НОЧНАЯ СОВА", t, 13.3, 20), 540, 710, { size: 56, c: C.paper, ls: 6, align: "center" });
   }
   // 14.85–20.0 the massager chat
   if (t > 14.85 && t < 20.05) {
@@ -144,7 +145,7 @@ function overlays(t) {
       x.save(); x.translate(540, 700); x.rotate(-0.08); x.scale(p, p);
       T(typed("Сценарий ролика", t, 18.05, 34), -270, -80, { size: 50, c: C.paper }); T(typed("с массажёром", t, 18.5, 34), -270, -10, { size: 50, c: C.orange });
       T("ЧАТ № 1 ПО ДЛИНЕ", -270, 205, { size: 30, c: "#2a2018" }); x.restore();
-      if (t > 18.6) T("?!", 860, 560, { size: 210, w: 900, f: D, c: C.red, rot: 0.2, s: oB(prog(t, 18.6, 18.8), 2.5), glow: C.red, glowR: 30 });
+      if (t > 18.6) T("?!", 800, 560, { size: 210, w: 900, f: D, c: C.red, rot: 0.2, s: oB(prog(t, 18.6, 18.8), 2.5), glow: C.red, glowR: 30 });
     }
   }
   // 20.0–23.25 secret achievements
@@ -154,9 +155,7 @@ function overlays(t) {
   }
   // 23.25–25.3 mugshot
   if (t > 23.25 && t < 25.35) {
-    const a = prog(t, 23.25, 23.45); x.save(); x.globalAlpha = a * 0.5; x.strokeStyle = C.paper; x.lineWidth = 3;
-    for (let i = 0; i < 9; i++) { const yy = 820 + i * 50; x.beginPath(); x.moveTo(180, yy); x.lineTo(900, yy); x.stroke(); T(String(190 - i * 10), 120, yy + 12, { size: 26, c: C.paper }); } x.restore();
-    paper(540, 1430, 620, 170, 0.0, t, 23.45, (w, h) => { T("ИНЖЕНЕР", 0, 32, { size: 96, w: 900, f: D, c: "#16121a", align: "center" }); });
+    paper(540, 1640, 760, 170, 0.0, t, 23.45, (w, h) => { T("ИНЖЕНЕР", 0, 32, { size: 96, w: 900, f: D, c: "#16121a", align: "center" }); });
     if (t > 24.6) { const names = ["КРЕАТОР", "СТРАТЕГ", "ИССЛЕДОВАТЕЛЬ", "СОБЕСЕДНИК"], k = Math.floor((t - 24.6) / 0.13) % 4; T(names[k] + "?", 540, 330, { size: 72, w: 900, f: D, c: C.amber, align: "center", glow: C.amber, glowR: 24 }); }
   }
   // 25.3–29.5 call to action
@@ -185,6 +184,8 @@ function render5(t) {
     const cg = x.createLinearGradient(0, by, 0, 1300); cg.addColorStop(0, `rgba(255,190,120,${0.28 * L})`); cg.addColorStop(1, "rgba(255,120,60,0)");
     x.fillStyle = cg; x.beginPath(); x.moveTo(bx - 70, by + 10); x.lineTo(bx + 70, by + 10); x.lineTo(poolX + 470, 1320); x.lineTo(poolX - 470, 1320); x.closePath(); x.fill(); x.restore();
     dust(t, bx, by, L);
+    if (t > 23.25 && t < 25.35) { const a = prog(t, 23.25, 23.45); x.save(); x.globalAlpha = a * 0.45; x.strokeStyle = C.paper; x.lineWidth = 3;
+      for (let i = 0; i < 9; i++) { const yy = 780 + i * 50; x.beginPath(); x.moveTo(170, yy); x.lineTo(910, yy); x.stroke(); T(String(190 - i * 10), 110, yy + 10, { size: 26, c: C.paper }); } x.restore(); }
     drawClaude(t);
     x.save(); x.translate(pv[0], pv[1]); x.rotate(swing); x.translate(-pv[0], -pv[1]); x.drawImage(IMG.lamp, 0, 0); x.restore();
     if (L > 0) { x.save(); x.globalCompositeOperation = "screen"; const gb = x.createRadialGradient(bx, by + 10, 0, bx, by + 10, 140); gb.addColorStop(0, `rgba(255,200,140,${0.8 * L})`); gb.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = gb; x.fillRect(bx - 160, by - 150, 320, 320); x.restore(); }
@@ -203,6 +204,7 @@ function render5(t) {
   if (t < 29.5) window.drawSubsOn(x, t);
 }
 window.render5 = render5; window.DUR = DUR;
+})();
 </script>
 </body>
 </html>
