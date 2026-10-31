@@ -11,7 +11,7 @@
 <script>
 /* «Компромат» promo v2 — real stats of @leonario23, 28 s, 1080x1920.
    render(t) is deterministic: every frame can be drawn on its own (used by render.js). */
-const W = 1080, H = 1920, DUR = 30;
+const W = 1080, H = 1920, DUR = 30;  // timed to voice.mp3 at 1.2x
 const C = { ink: "#12101a", ink2: "#1d1a28", paper: "#f3efe6", cobalt: "#2f3fe3", orange: "#ff7a1a", mint: "#bff0d4", plum: "#3b1540", lemon: "#f2e94e", rose: "#ff5f7e", cyan: "#4de1ff" };
 const PAL = [C.cobalt, C.orange, C.mint, C.lemon, C.rose, C.paper];
 const D = '"Unbounded", sans-serif', B = '"Onest", sans-serif', M = '"JetBrains Mono", monospace';
@@ -93,8 +93,8 @@ function post(t) {
   x.fillStyle = v; x.fillRect(0, 0, W, H);
   for (const f of FLASHES) { const d = t - f; if (d >= 0 && d < 0.3) { x.fillStyle = `rgba(255,255,255,${0.85 * (1 - d / 0.3)})`; x.fillRect(0, 0, W, H); } }
 }
-const IMPACTS = [1.48, 3.2, 9.8, 15.0, 17.6, 23.6, 25.4];
-const FLASHES = [1.3, 9.8, 17.6];
+const IMPACTS = [1.48, 3.5, 11.5, 17.85, 20.0, 25.3, 28.6];
+const FLASHES = [1.3, 11.5, 20.0];
 function shake(t) {
   let dx = 0, dy = 0, r = 0;
   for (const i of IMPACTS) { const d = t - i; if (d >= 0 && d < 0.55) { const a = 30 * Math.exp(-d * 8); dx += Math.sin(d * 95) * a; dy += Math.cos(d * 73) * a * 0.7; r += Math.sin(d * 60) * a * 0.0006; } }
@@ -133,14 +133,18 @@ function rr(px, py, w, h, rad) { x.beginPath(); x.roundRect(px, py, w, h, rad); 
 
 /* ---------- kinetic subtitles ---------- */
 const SUBS = [
-  { a: 0.25, b: 3.1, text: "Весь компромат, который ИИ собрал на меня", hi: ["компромат,", "ИИ"] },
-  { a: 3.45, b: 6.3, text: "73 чата. 2 585 сообщений.", hi: ["73"] },
-  { a: 6.7, b: 9.7, text: "200 586 слов — два с половиной романа лично мне", hi: ["200 586", "романа"] },
-  { a: 10.1, b: 12.9, text: "Мой пиковый час — полночь. Официально: ночная сова", hi: ["полночь.", "сова"] },
-  { a: 13.2, b: 14.95, text: "Самый длинный чат — 321 сообщение", hi: ["321"] },
-  { a: 15.2, b: 17.5, text: "Про… массажёр", hi: ["массажёр"] },
-  { a: 17.85, b: 20.5, text: "Секретные достижения, которые есть не у всех", hi: ["Секретные"] },
-  { a: 20.85, b: 23.5, text: "Мой тип — Инженер. А ты какой?", hi: ["Инженер.", "ты"] },
+  { a: 0.1, b: 3.4, text: "Весь компромат, который ИИ собрал на меня", hi: ["компромат,", "ИИ"] },
+  { a: 3.63, b: 5.05, text: "73 чата.", hi: ["73"] },
+  { a: 5.12, b: 6.95, text: "2 585 сообщений.", hi: [] },
+  { a: 7.09, b: 8.45, text: "200 586 слов —", hi: ["200 586"], st: 0.25 },
+  { a: 8.5, b: 11.4, text: "два с половиной романа лично мне", hi: ["романа"], st: 0.22 },
+  { a: 11.68, b: 13.1, text: "Мой пиковый час — полночь.", hi: ["полночь."], st: 0.2 },
+  { a: 13.19, b: 14.8, text: "Официально: ночная сова", hi: ["сова"], st: 0.3 },
+  { a: 14.88, b: 17.8, text: "Самый длинный чат — 321 сообщение", hi: ["321"], st: 0.22 },
+  { a: 17.91, b: 19.95, text: "Про… массажёр", hi: ["массажёр"], st: 0.65 },
+  { a: 20.17, b: 23.15, text: "Секретные достижения, которые есть не у всех", hi: ["Секретные"], st: 0.3 },
+  { a: 23.31, b: 24.58, text: "Мой тип — Инженер.", hi: ["Инженер."], st: 0.25 },
+  { a: 24.64, b: 25.28, text: "А ты какой?", hi: ["ты"], st: 0.15 },
 ];
 function subtitles(t) {
   const s = SUBS.find((q) => t >= q.a && t < q.b); if (!s) return;
@@ -153,7 +157,7 @@ function subtitles(t) {
   lines.forEach(([ln, width], li) => {
     let cx = W / 2 - width / 2; const cy = 1430 + li * 78 - (lines.length - 1) * 39;
     for (const [w, ww] of ln) {
-      const p = prog(t, s.a + k * 0.09, s.a + k * 0.09 + 0.22), isHi = s.hi.includes(w.replace(" ", " ")) || s.hi.includes(w);
+      const st = s.st || 0.09, p = prog(t, s.a + k * st, s.a + k * st + 0.22), isHi = s.hi.includes(w.replace(" ", " ")) || s.hi.includes(w);
       if (p > 0) {
         const sc = oBack(p, 2.4) * (1 - out * 0.3);
         x.save(); x.translate(cx + ww / 2, cy); x.scale(sc, sc); x.rotate((1 - p) * 0.2); x.globalAlpha = Math.min(1, p * 2) * (1 - out);
@@ -170,7 +174,7 @@ const SCENES = [];
 function scene(start, dur, trans, draw) { SCENES.push({ start, dur, trans, draw }); }
 
 // 0. Boot + stamp
-scene(0, 3.2, null, (t) => {
+scene(0, 3.5, null, (t) => {
   x.fillStyle = C.ink; x.fillRect(-80, -80, W + 160, H + 160);
   const r = rng(5); x.save(); x.font = `600 26px ${M}`; x.fillStyle = C.mint;
   for (let i = 0; i < 46; i++) { const y = ((i * 44 - t * 900) % (H + 80) + H + 80) % (H + 80); x.globalAlpha = 0.06 + r() * 0.08; let s = ""; for (let k = 0; k < 34; k++) s += "0123456789abcdef{}[]:\"/ "[Math.floor(r() * 24)]; x.fillText(s, 40, y); }
@@ -204,7 +208,7 @@ function stampShape(color, extra = 0) {
 }
 
 // 1. Chats avalanche
-scene(3.2, 3.2, { type: "wipe", ox: W / 2, oy: 900 }, (t) => {
+scene(3.5, 3.5, { type: "wipe", ox: W / 2, oy: 900 }, (t) => {
   x.fillStyle = C.cobalt; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.cyan, 4);
   const r = rng(21); let rowY = 1880, rowX = 60; const items = [];
   for (let i = 0; i < 73; i++) { const w = 130 + r() * 230, h = 58; if (rowX + w > W - 60) { rowY -= h + 14; rowX = 60 + r() * 40; } items.push([rowX, rowY - h, w, h, r()]); rowX += w + 14; }
@@ -220,7 +224,7 @@ scene(3.2, 3.2, { type: "wipe", ox: W / 2, oy: 900 }, (t) => {
 });
 
 // 2. Words vortex
-scene(6.4, 3.4, { type: "zoom" }, (t) => {
+scene(7.0, 4.5, { type: "zoom" }, (t) => {
   x.fillStyle = C.mint; x.fillRect(-80, -80, W + 160, H + 160);
   const r = rng(31), L = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯабвгдежзиклмнопрстуфхцчшэюя";
   x.save(); x.fillStyle = C.ink;
@@ -246,7 +250,7 @@ scene(6.4, 3.4, { type: "zoom" }, (t) => {
 });
 
 // 3. Night owl
-scene(9.8, 3.2, { type: "cut" }, (t) => {
+scene(11.5, 3.35, { type: "cut" }, (t) => {
   const n = ioCubic(prog(t, 0, 1.1));
   const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, mix("#ff7a1a", "#07061a", n)); g.addColorStop(1, mix("#3b1540", "#1d1a40", n));
   x.fillStyle = g; x.fillRect(-80, -80, W + 160, H + 160);
@@ -271,35 +275,35 @@ scene(9.8, 3.2, { type: "cut" }, (t) => {
 });
 
 // 4. The massager chat
-scene(13.0, 4.6, { type: "wipe", ox: W, oy: H }, (t) => {
+scene(14.85, 5.15, { type: "wipe", ox: W, oy: H }, (t) => {
   x.fillStyle = C.ink; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.rose, 8);
-  const freeze = t > 2.0, tt = freeze ? 2.0 : t;
+  const freeze = t > 3.0, tt = freeze ? 3.0 : t;
   // phone
   const pw = 560, ph = 880, px = W / 2 - pw / 2, py = 230;
-  const zoom = freeze ? 1 + oCubic(prog(t, 2.0, 2.4)) * 0.08 : 1;
+  const zoom = freeze ? 1 + oCubic(prog(t, 3.0, 3.4)) * 0.08 : 1;
   x.save(); x.translate(W / 2, py + ph / 2); x.scale(zoom, zoom); x.translate(-W / 2, -(py + ph / 2));
   x.fillStyle = "#000"; rr(px - 18, py - 18, pw + 36, ph + 36, 80); x.fill(); x.fillStyle = C.ink2; rr(px, py, pw, ph, 64); x.fill();
   x.save(); rr(px, py, pw, ph, 64); x.clip();
-  const r = rng(51), speed = 300 + 2600 * iExpo(clamp(tt / 1.8)), off = tt * speed;
+  const r = rng(51), speed = 300 + 2600 * iExpo(clamp(tt / 2.8)), off = tt * speed;
   for (let i = 0; i < 60; i++) { const left = i % 2 === 0, bw = 200 + r() * 260, by = py + ph - 120 - i * 96 + (off % (96 * 60)); const yy = ((by - py) % (96 * 60) + 96 * 60) % (96 * 60) + py - 600; if (yy < py - 100 || yy > py + ph) continue; x.fillStyle = left ? "#2e2a3d" : C.orange; rr(left ? px + 30 : px + pw - 30 - bw, yy, bw, 70, 30); x.fill(); }
   x.fillStyle = "rgba(29,26,40,.96)"; x.fillRect(px, py, pw, 150); txt("Claude", W / 2, py + 100, { size: 40, w: 700, c: C.paper, align: "center" });
   x.restore(); x.restore();
   txt("САМЫЙ ДЛИННЫЙ ЧАТ", 70, 170, { size: 36, w: 600, f: M, c: C.rose, ls: 6 });
   // counter pill
   x.save(); x.fillStyle = C.rose; rr(W / 2 - 330, 1150, 660, 160, 80); x.fill(); x.restore();
-  slot(321, W / 2 - 40, 1275, 120, t, 0.1, 1.7, { c: C.ink, align: "center" });
+  slot(321, W / 2 - 40, 1275, 120, t, 1.2, 1.6, { c: C.ink, align: "center" });
   txt("сообщ.", W / 2 + 200, 1265, { size: 48, w: 700, c: C.ink, align: "center" });
   if (freeze) {
-    const p = oBack(prog(t, 2.05, 2.4), 1.3);
-    x.save(); x.fillStyle = "rgba(10,9,16,.6)"; x.globalAlpha = prog(t, 2.0, 2.15); x.fillRect(0, 0, W, H); x.restore();
+    const p = oBack(prog(t, 3.05, 3.4), 1.3);
+    x.save(); x.fillStyle = "rgba(10,9,16,.6)"; x.globalAlpha = prog(t, 3.0, 3.15); x.fillRect(0, 0, W, H); x.restore();
     x.save(); x.translate(W / 2, 760); x.rotate(-0.05); x.scale(p, p); x.fillStyle = C.paper; rr(-470, -230, 940, 460, 40); x.fill(); x.restore();
-    if (t > 2.3) { typewriter("«Сценарий ролика", 150, 720, t, 2.3, 26, { size: 64, c: C.ink, maxW: 780, rot: -0.05 }); typewriter("с массажёром»", 150, 810, t, 2.95, 26, { size: 64, c: C.ink, maxW: 780, rot: -0.05 }); }
-    const q = prog(t, 3.5, 3.7); if (q > 0) txt("?!", W * 0.82, 560, { size: 240, c: C.orange, rot: 0.25 + (1 - oElastic(q)) * 1.5, s: oElastic(q), align: "center", chroma: 6 });
+    if (t > 3.25) { typewriter("«Сценарий ролика", 150, 720, t, 3.25, 30, { size: 64, c: C.ink, maxW: 780, rot: -0.05 }); typewriter("с массажёром»", 150, 810, t, 3.7, 30, { size: 64, c: C.ink, maxW: 780, rot: -0.05 }); }
+    const q = prog(t, 3.7, 3.9); if (q > 0) txt("?!", W * 0.82, 560, { size: 240, c: C.orange, rot: 0.25 + (1 - oElastic(q)) * 1.5, s: oElastic(q), align: "center", chroma: 6 });
   }
 });
 
 // 5. Secret badges
-scene(17.6, 3.0, { type: "cut" }, (t) => {
+scene(20.0, 3.25, { type: "cut" }, (t) => {
   x.fillStyle = "#0b0a12"; x.fillRect(-80, -80, W + 160, H + 160);
   const sa = Math.sin(t * 1.8) * 0.35; x.save(); x.translate(W / 2, -100); x.rotate(sa); const g = x.createLinearGradient(0, 0, 0, 1900); g.addColorStop(0, "rgba(242,233,78,.35)"); g.addColorStop(1, "rgba(242,233,78,0)"); x.fillStyle = g; x.beginPath(); x.moveTo(-60, 0); x.lineTo(60, 0); x.lineTo(520, 1900); x.lineTo(-520, 1900); x.closePath(); x.fill(); x.restore();
   const r = rng(61); x.save(); x.fillStyle = C.lemon; for (let i = 0; i < 60; i++) { const px = r() * W, py = ((r() * H - t * (40 + r() * 80)) % H + H) % H; x.globalAlpha = 0.3 * r(); x.beginPath(); x.arc(px, py, 2 + r() * 3, 0, 6.283); x.fill(); } x.restore();
@@ -322,7 +326,7 @@ scene(17.6, 3.0, { type: "cut" }, (t) => {
 });
 
 // 6. Type card flip
-scene(20.6, 3.0, { type: "wipe", ox: W / 2, oy: H / 2 }, (t) => {
+scene(23.25, 2.05, { type: "wipe", ox: W / 2, oy: H / 2 }, (t) => {
   x.fillStyle = C.cobalt; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.lemon, 12);
   const ang = lerp(Math.PI, 0, oBack(prog(t, 0.1, 0.8), 1.2)), sx = Math.cos(ang), front = sx >= 0;
   x.save(); x.translate(W / 2, 760); x.scale(Math.max(0.02, Math.abs(sx)), 1); x.rotate((1 - Math.abs(sx)) * 0.05);
@@ -336,15 +340,15 @@ scene(20.6, 3.0, { type: "wipe", ox: W / 2, oy: H / 2 }, (t) => {
     x.fillStyle = C.lemon; rr(-40, 330, 340, 90, 45); x.fill(); x.fillStyle = C.ink; x.fillText("Ошибки", 0, 392);
   } else { txt("?", 0, 120, { size: 420, c: C.lemon, align: "center" }); }
   x.restore();
-  if (t > 1.6) {
+  if (t > 1.35) {
     const names = ["Креатор", "Исследователь", "Стратег", "Собеседник"], cols = [C.orange, C.mint, C.lemon, C.rose];
-    if (t > 2.0) { const k = Math.floor((t - 2.0) / 0.13) % names.length; txt(names[k], W / 2, 1590, { size: 70, c: cols[k], align: "center", stroke: C.ink, strokeW: 12 }); }
+    if (t > 1.4) { const k = Math.floor((t - 1.4) / 0.13) % names.length; txt(names[k], W / 2, 1590, { size: 70, c: cols[k], align: "center", stroke: C.ink, strokeW: 12 }); }
   }
 });
 function slamCentered(s, y, t, at) { slam(s, W / 2, y, t, at, { size: 96, c: C.lemon, align: "center", stroke: C.ink, strokeW: 14 }); }
 
 // 7. CTA with phone + tap + cards flying out
-scene(23.6, 6.4, { type: "zoom" }, (t) => {
+scene(25.3, 4.7, { type: "zoom" }, (t) => {
   x.fillStyle = C.orange; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.lemon, 15);
   const cards = [[C.cobalt, "73"], [C.plum, "00:00"], [C.lemon, "10"], [C.rose, "321"], [C.mint, "Инженер"]];
   cards.forEach(([col, label], i) => {
@@ -372,11 +376,11 @@ scene(23.6, 6.4, { type: "zoom" }, (t) => {
   slam("компромат", W / 2, 360, t, 0.35, { size: 110, c: C.ink, align: "center" });
   const chips = ["бесплатно", "2 минуты", "чаты не уходят"]; font(32, 700, D);
   let cx = W / 2 - (chips.reduce((a, c) => a + x.measureText(c).width + 48, 0) + 16 * 2) / 2;
-  chips.forEach((c, i) => { const p = oBack(prog(t, 1.7 + i * 0.15, 2.0 + i * 0.15), 2); font(32, 700, D); const w = x.measureText(c).width + 48; if (p > 0) { x.save(); x.translate(cx + w / 2, 1330); x.scale(p, p); x.fillStyle = C.paper; rr(-w / 2, -40, w, 80, 40); x.fill(); x.fillStyle = C.ink; x.textAlign = "center"; x.fillText(c, 0, 11); x.restore(); } cx += w + 16; });
-  const pp = prog(t, 2.25, 2.5);
-  if (pp > 0) { const s = oBack(pp, 2) * (1 + 0.04 * Math.sin((t - 2.5) * 9) * (t > 2.5 ? 1 : 0)); x.save(); x.translate(W / 2, 1480); x.scale(s, s); x.fillStyle = C.ink; rr(-440, -80, 880, 160, 80); x.fill(); x.fillStyle = C.paper; font(56, 900, D); x.textAlign = "center"; x.fillText("ссылка в профиле ↑", 0, 20); x.restore(); }
-  rise(HANDLE, W / 2, 1625, t, 2.55, { size: 64, c: C.ink, align: "center" });
-  confettiRain(t, 1.9, 9, 160);
+  chips.forEach((c, i) => { const p = oBack(prog(t, 1.1 + i * 0.5, 1.4 + i * 0.5), 2); font(32, 700, D); const w = x.measureText(c).width + 48; if (p > 0) { x.save(); x.translate(cx + w / 2, 1330); x.scale(p, p); x.fillStyle = C.paper; rr(-w / 2, -40, w, 80, 40); x.fill(); x.fillStyle = C.ink; x.textAlign = "center"; x.fillText(c, 0, 11); x.restore(); } cx += w + 16; });
+  const pp = prog(t, 3.3, 3.55);
+  if (pp > 0) { const s = oBack(pp, 2) * (1 + 0.04 * Math.sin((t - 3.55) * 9) * (t > 3.55 ? 1 : 0)); x.save(); x.translate(W / 2, 1480); x.scale(s, s); x.fillStyle = C.ink; rr(-440, -80, 880, 160, 80); x.fill(); x.fillStyle = C.paper; font(56, 900, D); x.textAlign = "center"; x.fillText("ссылка в профиле ↑", 0, 20); x.restore(); }
+  rise(HANDLE, W / 2, 1625, t, 3.55, { size: 64, c: C.ink, align: "center" });
+  confettiRain(t, 3.3, 9, 160);
 });
 
 /* ---------- compositor ---------- */

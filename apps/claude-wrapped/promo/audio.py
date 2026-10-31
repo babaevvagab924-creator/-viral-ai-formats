@@ -75,8 +75,8 @@ def glitch(dur=0.3):
 BPM = 125; beat = 60 / BPM; start = 1.48
 notes = [55.0, 55.0, 43.65, 49.0]  # A1 A1 F1 G1 per bar
 t = start; b = 0
-while t < 29.0:
-    silent = 15.0 <= t < 16.0  # comedic pause for "massager"
+while t < 29.4:
+    silent = 17.85 <= t < 18.95  # comedic pause for "massager"
     if not silent:
         add(kick(), t, 0.9)
         add(hat(), t + beat / 2, 0.5, pan=0.2)
@@ -87,16 +87,16 @@ while t < 29.0:
 typing(0.05, 1.0, 40)
 add(riser(1.3), 0.0, 0.7)
 add(glitch(0.3), 1.0, 0.8)
-for ti, g in [(1.48, 1.3), (3.2, 0.6), (9.8, 0.7), (15.0, 0.4), (17.6, 0.8), (23.6, 0.6), (25.4, 0.5)]: add(impact(g), ti, 0.9)
-for ti in [3.0, 6.2, 9.6, 12.8, 17.4, 20.4, 23.4]: add(whoosh(), ti, 0.7, pan=rs.uniform(-0.4, 0.4))
-for a, d in [(3.35, 1.0), (6.9, 1.2), (13.1, 1.7)]:  # slot counters
+for ti, g in [(1.48, 1.3), (3.5, 0.6), (11.5, 0.7), (17.85, 0.4), (20.0, 0.8), (25.3, 0.6), (28.6, 0.5)]: add(impact(g), ti, 0.9)
+for ti in [3.3, 6.8, 11.3, 14.65, 19.8, 23.05, 25.1]: add(whoosh(), ti, 0.7, pan=rs.uniform(-0.4, 0.4))
+for a, d in [(3.65, 1.0), (7.5, 1.2), (16.05, 1.6)]:  # slot counters
     for k in range(int(d / 0.045)): add(tick(), a + k * 0.045, 0.5)
-add(scratch(), 15.0, 0.9)
-typing(15.3, 1.2, 26)
-for k, ti in enumerate([18.2, 18.6, 19.0]): add(ding(1320 * (1.12 ** k)), ti, 0.8)
-add(tick() * 3, 24.55, 1.0)  # tap
-for k in range(5): add(whoosh(0.3), 24.75 + k * 0.08, 0.35, pan=(k - 2) * 0.3)
-add(ding(1760), 25.85, 0.6)
+add(scratch(), 17.85, 0.9)
+typing(18.1, 1.0, 30)
+for k, ti in enumerate([20.6, 21.0, 21.4]): add(ding(1320 * (1.12 ** k)), ti, 0.8)
+add(tick() * 3, 26.25, 1.0)  # tap
+for k in range(5): add(whoosh(0.3), 26.45 + k * 0.08, 0.35, pan=(k - 2) * 0.3)
+add(ding(1760), 28.6, 0.6)
 # master: fade out, normalize
 fade = np.ones(N); fl = int(1.0 * SR); fade[-fl:] = np.linspace(1, 0, fl)
 L *= fade; R *= fade
