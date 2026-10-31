@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Компромат — промо v2</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Onest:wght@500;700&family=JetBrains+Mono:wght@600&display=swap">
+<style>html,body{margin:0;background:#000}canvas{display:block;width:360px;height:640px}</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+/* «Компромат» promo v2 — real stats of @leonario23, 28 s, 1080x1920.
+   render(t) is deterministic: every frame can be drawn on its own (used by render.js). */
+const W = 1080, H = 1920, DUR = 28;
+const C = { ink: "#12101a", ink2: "#1d1a28", paper: "#f3efe6", cobalt: "#2f3fe3", orange: "#ff7a1a", mint: "#bff0d4", plum: "#3b1540", lemon: "#f2e94e", rose: "#ff5f7e", cyan: "#4de1ff" };
+const PAL = [C.cobalt, C.orange, C.mint, C.lemon, C.rose, C.paper];
+const D = '"Unbounded", sans-serif', B = '"Onest", sans-serif', M = '"JetBrains Mono", monospace';
+const HANDLE = "@leonario23";
+const cv = document.getElementById("c"), x = cv.getContext("2d");
+
+/* ---------- math ---------- */
+const clamp = (v) => Math.max(0, Math.min(1, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, p) => a + (b - a) * p;
+const oCubic = (p) => 1 - Math.pow(1 - p, 3);
+const ioCubic = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const oExpo = (p) => (p >= 1 ? 1 : 1 - Math.pow(2, -10 * p));
+const iExpo = (p) => (p <= 0 ? 0 : Math.pow(2, 10 * p - 10));
+const oBack = (p, c = 1.7) => 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2);
+const oElastic = (p) => (p <= 0 ? 0 : p >= 1 ? 1 : Math.pow(2, -10 * p) * Math.sin((p * 10 - 0.75) * (2 * Math.PI / 3)) + 1);
+function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let r = Math.imul(seed ^ (seed >>> 15), 1 | seed); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (n) => Math.round(n).toLocaleString("ru-RU").replace(/ /g, " ");
+function mix(c1, c2, p) { const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16); const r = Math.round(lerp(a >> 16, b >> 16, p)), g = Math.round(lerp((a >> 8) & 255, (b >> 8) & 255, p)), bl = Math.round(lerp(a & 255, b & 255, p)); return `rgb(${r},${g},${bl})`; }
+
+/* ---------- text ---------- */
+function font(size, weight, fam) { x.font = `${weight} ${size}px ${fam}`; }
+function fit(str, size, weight, fam, maxW) { font(size, weight, fam); while (x.measureText(str).width > maxW && size > 18) { size -= 3; font(size, weight, fam); } return size; }
+function txt(str, px, py, o = {}) {
+  const size = fit(str, o.size || 80, o.w || 900, o.f || D, o.maxW || W - 140);
+  x.save(); x.globalAlpha *= o.a == null ? 1 : o.a; x.textAlign = o.align || "left"; x.textBaseline = "alphabetic";
+  if (o.ls) x.letterSpacing = o.ls + "px";
+  x.translate(px, py); if (o.rot) x.rotate(o.rot); if (o.s != null) x.scale(o.s, o.s);
+  if (o.glow) { x.shadowColor = o.glow; x.shadowBlur = o.glowR || 40; }
+  if (o.stroke) { x.lineJoin = "round"; x.lineWidth = o.strokeW || 12; x.strokeStyle = o.stroke; x.strokeText(str, 0, 0); }
+  if (o.chroma) { const k = o.chroma; x.globalAlpha *= 0.85; x.fillStyle = C.rose; x.fillText(str, -k, 0); x.fillStyle = C.cyan; x.fillText(str, k, 0); x.globalAlpha /= 0.85; }
+  x.fillStyle = o.c || C.paper; x.fillText(str, 0, 0); x.restore(); return size;
+}
+function rise(str, px, py, t, at, o = {}) {
+  const p = oCubic(prog(t, at, at + 0.45)); if (p <= 0) return;
+  const size = o.size || 80;
+  x.save(); x.beginPath(); x.rect(-100, py - size * 1.1, W + 200, size * 1.45); x.clip();
+  txt(str, px, py + (1 - p) * size * 1.25, o); x.restore();
+}
+function slam(str, px, py, t, at, o = {}) {
+  const p = prog(t, at, at + 0.2); if (p <= 0) return;
+  const k = 1 - oCubic(p);
+  for (let g = 3; g >= 1 && k > 0.05; g--) txt(str, px, py, { ...o, s: 1 + k * (o.from || 1.2) * (1 + g * 0.18), a: 0.12 * k });   // motion blur ghosts
+  txt(str, px, py, { ...o, s: 1 + k * (o.from || 1.2), a: Math.min(1, p * 2), chroma: (o.chroma || 0) + k * 26 });
+}
+function typewriter(str, px, py, t, at, cps, o = {}) {
+  const n = Math.floor(Math.max(0, t - at) * cps); if (n <= 0) return;
+  const shown = str.slice(0, n), caret = n < str.length && Math.floor(t * 6) % 2 === 0 ? "▌" : "";
+  txt(shown + caret, px, py, o);
+}
+// slot-machine digits: each column spins and lands left to right
+function slot(value, px, py, size, t, at, dur, o = {}) {
+  const s = fmt(value); font(size, 900, D);
+  let total = 0; for (const ch of s) total += x.measureText(ch === " " ? " " : ch).width;
+  let cx = o.align === "center" ? px - total / 2 : px; let col = 0; const nCols = s.replace(/ /g, "").length;
+  for (const ch of s) {
+    font(size, 900, D); const w = x.measureText(ch).width;
+    if (ch === " ") { cx += w; continue; }
+    const d = +ch, land = at + dur * (0.35 + 0.65 * (col / Math.max(1, nCols - 1))), p = prog(t, at, land);
+    if (t >= at) {
+      const spins = 2 + (nCols - col), pos = (1 - oCubic(p)) * spins * 10, cur = Math.floor(pos) % 10, frac = pos - Math.floor(pos);
+      x.save(); x.beginPath(); x.rect(cx - 4, py - size * 0.86, w + 8, size * 1.0); x.clip();
+      x.fillStyle = o.c || C.paper;
+      const dA = (d + cur) % 10, dB = (d + cur + 1) % 10;
+      if (p >= 1) x.fillText(String(d), cx, py);
+      else { x.globalAlpha = 0.9; x.fillText(String(dA), cx, py - frac * size * 0.95); x.fillText(String(dB), cx, py + (1 - frac) * size * 0.95); }
+      x.restore();
+    }
+    cx += w; col++;
+  }
+}
+
+/* ---------- post effects ---------- */
+const grains = [0, 1, 2, 3].map((k) => { const g = document.createElement("canvas"); g.width = 270; g.height = 480; const gx = g.getContext("2d"), r = rng(100 + k), im = gx.createImageData(270, 480); for (let i = 0; i < im.data.length; i += 4) { const v = r() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } gx.putImageData(im, 0, 0); return g; });
+function post(t) {
+  x.save(); x.globalAlpha = 0.07; x.globalCompositeOperation = "overlay"; x.imageSmoothingEnabled = false;
+  x.drawImage(grains[Math.floor(t * 24) % 4], 0, 0, W, H); x.restore();
+  const v = x.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.75); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,0.42)");
+  x.fillStyle = v; x.fillRect(0, 0, W, H);
+  for (const f of FLASHES) { const d = t - f; if (d >= 0 && d < 0.3) { x.fillStyle = `rgba(255,255,255,${0.85 * (1 - d / 0.3)})`; x.fillRect(0, 0, W, H); } }
+}
+const IMPACTS = [1.48, 3.2, 9.8, 15.0, 17.2, 23.2, 25.0];
+const FLASHES = [1.3, 9.8, 17.2];
+function shake(t) {
+  let dx = 0, dy = 0, r = 0;
+  for (const i of IMPACTS) { const d = t - i; if (d >= 0 && d < 0.55) { const a = 30 * Math.exp(-d * 8); dx += Math.sin(d * 95) * a; dy += Math.cos(d * 73) * a * 0.7; r += Math.sin(d * 60) * a * 0.0006; } }
+  return [dx, dy, r];
+}
+// horizontal slice glitch of what is already drawn
+function glitch(t, strength, seed) {
+  if (strength <= 0) return;
+  const r = rng(seed + Math.floor(t * 30));
+  for (let i = 0; i < 9; i++) { const y = r() * H, h = 20 + r() * 120, off = (r() - 0.5) * 160 * strength; x.drawImage(cv, 0, y, W, h, off, y, W, h); }
+  x.save(); x.globalAlpha = 0.25 * strength; x.fillStyle = r() > 0.5 ? C.cyan : C.rose; x.fillRect(0, r() * H, W, 6 + r() * 20); x.restore();
+}
+
+/* ---------- particles ---------- */
+function confettiRain(t, at, seed, n) {
+  const r = rng(seed), tau = t - at; if (tau < 0) return;
+  for (let i = 0; i < n; i++) {
+    const x0 = r() * W, delay = r() * 1.4, v = 520 + r() * 700, w = 14 + r() * 14, h = 22 + r() * 18, spin = (r() - 0.5) * 10, sway = 30 + r() * 60;
+    const tt = tau - delay; if (tt < 0) continue;
+    const py = -60 + v * tt, px = x0 + Math.sin(tt * 3 + i) * sway; if (py > H + 60) continue;
+    x.save(); x.translate(px, py); x.rotate(spin * tt + i); x.fillStyle = PAL[i % PAL.length]; x.fillRect(-w / 2, -h / 2, w, h * Math.abs(Math.cos(spin * tt + i)) + 2); x.restore();
+  }
+}
+function dust(t, at, cx, cy, n, color, seed, spread = 1) {
+  const r = rng(seed), d = t - at; if (d < 0 || d > 1.1) return;
+  x.save(); x.fillStyle = color;
+  for (let i = 0; i < n; i++) { const a = r() * 6.283, sp = (400 + r() * 900) * spread, sz = 5 + r() * 12; x.globalAlpha = Math.max(0, 1 - d / 1.1); x.fillRect(cx + Math.cos(a) * sp * oCubic(Math.min(1, d * 1.4)), cy + Math.sin(a) * sp * 0.6 * oCubic(Math.min(1, d * 1.4)) + 300 * d * d, sz, sz); }
+  x.restore();
+}
+function lightLeak(t, color, seed) {
+  const r = rng(seed); x.save(); x.globalCompositeOperation = "screen";
+  for (let i = 0; i < 2; i++) { const cx = W * (0.2 + 0.6 * r()) + Math.sin(t * 0.7 + i * 2) * 220, cy = H * (0.2 + 0.6 * r()) + Math.cos(t * 0.5 + i) * 300, g = x.createRadialGradient(cx, cy, 0, cx, cy, 700); g.addColorStop(0, color); g.addColorStop(1, "rgba(0,0,0,0)"); x.globalAlpha = 0.22; x.fillStyle = g; x.fillRect(0, 0, W, H); }
+  x.restore();
+}
+function rr(px, py, w, h, rad) { x.beginPath(); x.roundRect(px, py, w, h, rad); }
+
+/* ---------- kinetic subtitles ---------- */
+const SUBS = [
+  { a: 0.25, b: 3.1, text: "Весь компромат, который ИИ собрал на меня", hi: ["компромат,", "ИИ"] },
+  { a: 3.45, b: 6.3, text: "73 чата. 2 585 сообщений.", hi: ["73"] },
+  { a: 6.7, b: 9.7, text: "200 586 слов — два с половиной романа лично мне", hi: ["200 586", "романа"] },
+  { a: 10.1, b: 12.9, text: "Мой пиковый час — полночь. Официально: ночная сова", hi: ["полночь.", "сова"] },
+  { a: 13.2, b: 14.95, text: "Самый длинный чат — 321 сообщение", hi: ["321"] },
+  { a: 15.2, b: 17.1, text: "Про… массажёр", hi: ["массажёр"] },
+  { a: 17.45, b: 20.1, text: "Секретные достижения, которые есть не у всех", hi: ["Секретные"] },
+  { a: 20.45, b: 23.1, text: "Мой тип — Инженер. А ты какой?", hi: ["Инженер.", "ты"] },
+];
+function subtitles(t) {
+  const s = SUBS.find((q) => t >= q.a && t < q.b); if (!s) return;
+  const words = s.text.replace("200 586", "200 586").split(" "), size = 60, gap = 18, maxW = W - 160;
+  font(size, 900, D);
+  const lines = []; let line = [], lw = 0;
+  for (const w of words) { const ww = x.measureText(w).width; if (lw + ww > maxW && line.length) { lines.push([line, lw - gap]); line = []; lw = 0; } line.push([w, ww]); lw += ww + gap; }
+  lines.push([line, lw - gap]);
+  const out = prog(t, s.b - 0.18, s.b); let k = 0;
+  lines.forEach(([ln, width], li) => {
+    let cx = W / 2 - width / 2; const cy = 1430 + li * 78 - (lines.length - 1) * 39;
+    for (const [w, ww] of ln) {
+      const p = prog(t, s.a + k * 0.09, s.a + k * 0.09 + 0.22), isHi = s.hi.includes(w.replace(" ", " ")) || s.hi.includes(w);
+      if (p > 0) {
+        const sc = oBack(p, 2.4) * (1 - out * 0.3);
+        x.save(); x.translate(cx + ww / 2, cy); x.scale(sc, sc); x.rotate((1 - p) * 0.2); x.globalAlpha = Math.min(1, p * 2) * (1 - out);
+        x.textAlign = "center"; font(size, 900, D); x.lineJoin = "round"; x.lineWidth = 14; x.strokeStyle = C.ink; x.strokeText(w, 0, 0);
+        x.fillStyle = isHi ? C.orange : C.paper; x.fillText(w, 0, 0); x.restore();
+      }
+      cx += ww + gap; k++;
+    }
+  });
+}
+
+/* ---------- scenes ---------- */
+const SCENES = [];
+function scene(start, dur, trans, draw) { SCENES.push({ start, dur, trans, draw }); }
+
+// 0. Boot + stamp
+scene(0, 3.2, null, (t) => {
+  x.fillStyle = C.ink; x.fillRect(-80, -80, W + 160, H + 160);
+  const r = rng(5); x.save(); x.font = `600 26px ${M}`; x.fillStyle = C.mint;
+  for (let i = 0; i < 46; i++) { const y = ((i * 44 - t * 900) % (H + 80) + H + 80) % (H + 80); x.globalAlpha = 0.06 + r() * 0.08; let s = ""; for (let k = 0; k < 34; k++) s += "0123456789abcdef{}[]:\"/ "[Math.floor(r() * 24)]; x.fillText(s, 40, y); }
+  x.restore();
+  if (t < 1.3) {
+    typewriter("> загружаю твои чаты…", 120, 820, t, 0.05, 40, { size: 44, w: 600, f: M, c: C.mint, maxW: 900 });
+    const p = ioCubic(prog(t, 0.15, 1.15)); x.fillStyle = "#2e2a3d"; rr(120, 880, 840, 26, 13); x.fill(); x.fillStyle = C.mint; rr(120, 880, Math.max(26, 840 * p), 26, 13); x.fill();
+    txt(Math.round(p * 100) + "%", 960, 970, { size: 40, w: 600, f: M, c: C.mint, align: "right" });
+    txt("73 чата · 2 585 сообщений · 18.07 — 31.10.2026", 120, 970, { size: 26, w: 600, f: M, c: "#a39db3", a: prog(t, 0.6, 0.8), maxW: 640 });
+  }
+  const p = prog(t, 1.3, 1.48);
+  if (p > 0) {
+    const k = 1 - oCubic(p), sc = 1 + k * 3.5;
+    for (let g = 0; g < 4 && k > 0.02; g++) { x.save(); x.translate(W / 2, 900); x.rotate(-0.12); x.scale(sc * (1 + g * 0.15), sc * (1 + g * 0.15)); x.globalAlpha = 0.1; stampShape(C.orange); x.restore(); }
+    x.save(); x.translate(W / 2, 900); x.rotate(-0.12); x.scale(sc, sc); x.globalAlpha = Math.min(1, p * 2); stampShape(C.orange, t > 1.48 ? 0 : 20); x.restore();
+    if (t > 1.48) { // cracks
+      const r2 = rng(77), d = prog(t, 1.48, 1.7); x.save(); x.strokeStyle = C.orange; x.lineWidth = 4; x.globalAlpha = 0.6;
+      for (let i = 0; i < 14; i++) { let a = r2() * 6.283, px = W / 2 + Math.cos(a) * 470, py = 900 + Math.sin(a) * 170; x.beginPath(); x.moveTo(px, py); const n = 5; for (let s = 1; s <= n * d; s++) { a += (r2() - 0.5) * 0.9; px += Math.cos(a) * 60; py += Math.sin(a) * 60; x.lineTo(px, py); } x.stroke(); }
+      x.restore();
+    }
+    dust(t, 1.48, W / 2, 900, 70, C.orange, 11);
+  }
+  rise("ДЕЛО № 2026", W / 2, 1150, t, 1.8, { size: 44, w: 600, f: M, c: C.paper, align: "center", ls: 8 });
+  rise(HANDLE.toUpperCase(), W / 2, 1220, t, 1.95, { size: 40, w: 600, f: M, c: C.orange, align: "center", ls: 6 });
+  if (t > 1.0 && t < 1.32) glitch(t, prog(t, 1.0, 1.3), 3);
+});
+function stampShape(color, extra = 0) {
+  const size = fit("КОМПРОМАТ", 150, 900, D, W - 260), tw = x.measureText("КОМПРОМАТ").width;
+  x.strokeStyle = color; x.lineWidth = 14; rr(-tw / 2 - 44, -size * 0.98, tw + 88, size * 1.42, 26); x.stroke();
+  x.fillStyle = color; x.textAlign = "center"; if (extra) { x.shadowColor = color; x.shadowBlur = extra * 2; } x.fillText("КОМПРОМАТ", 0, size * 0.2);
+}
+
+// 1. Chats avalanche
+scene(3.2, 3.2, { type: "wipe", ox: W / 2, oy: 900 }, (t) => {
+  x.fillStyle = C.cobalt; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.cyan, 4);
+  const r = rng(21); let rowY = 1880, rowX = 60; const items = [];
+  for (let i = 0; i < 73; i++) { const w = 130 + r() * 230, h = 58; if (rowX + w > W - 60) { rowY -= h + 14; rowX = 60 + r() * 40; } items.push([rowX, rowY - h, w, h, r()]); rowX += w + 14; }
+  items.forEach(([bx, by, bw, bh, q], i) => {
+    const at = 0.05 + i * 0.022, p = prog(t, at, at + 0.55); if (p <= 0) return;
+    const y = lerp(-200 - q * 400, by, oBack(p, 1.2)), rot = (1 - p) * (q - 0.5) * 1.2;
+    x.save(); x.translate(bx + bw / 2, y + bh / 2); x.rotate(rot); x.globalAlpha = 0.9; x.fillStyle = i % 3 === 0 ? C.lemon : i % 3 === 1 ? C.paper : C.mint; rr(-bw / 2, -bh / 2, bw, bh, 29); x.fill();
+    x.fillStyle = C.cobalt; x.globalAlpha = 0.35; for (let k = 0; k < 3; k++) { rr(-bw / 2 + 24, -bh / 2 + 16 + k * 0, Math.max(30, bw * (0.7 - k * 0.2)), 8, 4); } x.fill(); x.restore();
+  });
+  txt("РАЗГОВОРЫ", 70, 300, { size: 40, w: 600, f: M, c: C.paper, ls: 6, a: prog(t, 0, 0.3) });
+  slot(73, 70, 700, 440, t, 0.15, 1.1, { c: C.paper });
+  rise("чата", 80, 850, t, 0.9, { size: 140, c: C.lemon, stroke: C.cobalt, strokeW: 16 });
+});
+
+// 2. Words vortex
+scene(6.4, 3.4, { type: "zoom" }, (t) => {
+  x.fillStyle = C.mint; x.fillRect(-80, -80, W + 160, H + 160);
+  const r = rng(31), L = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯабвгдежзиклмнопрстуфхцчшэюя";
+  x.save(); x.fillStyle = C.ink;
+  for (let i = 0; i < 240; i++) {
+    const a0 = r() * 6.283, r0 = 700 + r() * 900, delay = r() * 0.6, ch = L[Math.floor(r() * L.length)], s = 24 + r() * 60;
+    const p = prog(t, delay, delay + 1.1); if (p >= 1) continue;
+    const e = ioCubic(p), rad = r0 * (1 - e), a = a0 + e * 5;
+    x.globalAlpha = (1 - e) * 0.55; font(s * (1 - e * 0.7), 900, D); x.fillText(ch, W / 2 + Math.cos(a) * rad, 640 + Math.sin(a) * rad * 0.8);
+  }
+  x.restore();
+  txt("СЛОВА", 70, 300, { size: 40, w: 600, f: M, c: C.ink, ls: 6 });
+  const fs = fit("200 586", 300, 900, D, W - 140);
+  slot(200586, W / 2, 720, fs, t, 0.5, 1.3, { c: C.ink, align: "center" });
+  rise("написал мне Claude", W / 2, 850, t, 1.3, { size: 70, c: C.ink, align: "center" });
+  const books = [[C.cobalt, 1.0], [C.orange, 1.0], [C.rose, 0.5]];
+  books.forEach(([col, part], i) => {
+    const at = 1.8 + i * 0.2, p = prog(t, at, at + 0.35); if (p <= 0) return;
+    const bw = 200, bh = 300 * part + 0, bx = W / 2 - 330 + i * 230, by = lerp(-400, 1200 - bh, oBack(p, 1.4));
+    x.save(); x.translate(bx + bw / 2, by + bh / 2); x.rotate((1 - p) * 0.5 + (i - 1) * 0.04); x.fillStyle = col; rr(-bw / 2, -bh / 2, bw, bh, 16); x.fill();
+    x.fillStyle = "rgba(0,0,0,.25)"; x.fillRect(-bw / 2 + 22, -bh / 2, 14, bh); x.fillStyle = "rgba(255,255,255,.55)"; x.fillRect(-bw / 2 + 56, -bh / 2 + 40, bw - 90, 10); x.fillRect(-bw / 2 + 56, -bh / 2 + 62, bw - 120, 10); x.restore();
+  });
+  rise("≈ 2,5 романа", W / 2, 1290, t, 2.4, { size: 48, w: 600, f: M, c: C.ink, align: "center" });
+});
+
+// 3. Night owl
+scene(9.8, 3.2, { type: "cut" }, (t) => {
+  const n = ioCubic(prog(t, 0, 1.1));
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, mix("#ff7a1a", "#07061a", n)); g.addColorStop(1, mix("#3b1540", "#1d1a40", n));
+  x.fillStyle = g; x.fillRect(-80, -80, W + 160, H + 160);
+  const sunY = lerp(820, 1500, n); x.save(); x.fillStyle = C.lemon; x.shadowColor = C.orange; x.shadowBlur = 80; x.globalAlpha = 1 - n * 0.6; x.beginPath(); x.arc(W * 0.3, sunY, 150, 0, 6.283); x.fill(); x.restore();
+  const r = rng(41); x.save(); x.fillStyle = C.paper;
+  for (let i = 0; i < 90; i++) { const px = r() * W, py = r() * 1250, rad = 1 + r() * 3.5, ph = r() * 6; x.globalAlpha = n * (0.25 + 0.6 * (0.5 + 0.5 * Math.sin(t * 5 + ph))); x.beginPath(); x.arc(px, py, rad, 0, 6.283); x.fill(); }
+  x.restore();
+  const mp = oCubic(prog(t, 0.9, 1.8)); if (mp > 0) { const mx = W * 0.8, my = lerp(900, 330, mp); x.save(); x.shadowColor = C.lemon; x.shadowBlur = 70; x.fillStyle = C.lemon; x.beginPath(); x.arc(mx, my, 90, 0, 6.283); x.fill(); x.shadowBlur = 0; x.fillStyle = mix("#ff7a1a", "#07061a", n); x.beginPath(); x.arc(mx + 40, my - 25, 80, 0, 6.283); x.fill(); x.restore(); }
+  // hills
+  x.fillStyle = "#0b0a12"; x.beginPath(); x.moveTo(-80, H); x.lineTo(-80, 1360); for (let i = 0; i <= 12; i++) x.lineTo(i * 100, 1330 + Math.sin(i * 1.3) * 60); x.lineTo(W + 80, H); x.fill();
+  // owl eyes blink
+  const blink = t > 2.3 && t < 2.42 ? 0.15 : 1; if (t > 1.6) { x.save(); x.fillStyle = C.lemon; x.shadowColor = C.lemon; x.shadowBlur = 30; for (const ex of [-34, 34]) { x.beginPath(); x.ellipse(W * 0.78 + ex, 1420, 22, 22 * blink, 0, 0, 6.283); x.fill(); } x.restore(); }
+  // clock
+  const cx = W / 2, cy = 640, R = 230; x.save(); x.globalAlpha = prog(t, 0.1, 0.4); x.strokeStyle = C.paper; x.lineWidth = 10; x.beginPath(); x.arc(cx, cy, R, 0, 6.283); x.stroke();
+  for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; x.lineWidth = i % 3 ? 4 : 10; x.beginPath(); x.moveTo(cx + Math.cos(a) * (R - 30), cy + Math.sin(a) * (R - 30)); x.lineTo(cx + Math.cos(a) * (R - 8), cy + Math.sin(a) * (R - 8)); x.stroke(); }
+  const hp = oCubic(prog(t, 0.2, 1.5)), hour = lerp(18, 24, hp), ha = (hour / 12) * 6.283 - Math.PI / 2, ma = (hour * 6.283) - Math.PI / 2;
+  x.lineCap = "round"; x.lineWidth = 16; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ha) * 120, cy + Math.sin(ha) * 120); x.stroke();
+  x.lineWidth = 9; x.strokeStyle = C.orange; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ma) * 190, cy + Math.sin(ma) * 190); x.stroke(); x.restore();
+  if (t > 1.5) { const pulse = 1 + 0.06 * Math.max(0, 1 - (t - 1.5) * 3); txt("00:00", W / 2, 1010, { size: 110, c: C.lemon, align: "center", s: pulse, glow: C.lemon, glowR: 50 }); }
+  const fl = t > 1.7 ? (t < 2.1 ? (rng(Math.floor(t * 20))() > 0.4 ? 1 : 0.2) : 1) : 0;
+  if (fl) txt("НОЧНАЯ СОВА", W / 2, 1180, { size: 96, c: C.paper, align: "center", glow: C.rose, glowR: 60, a: fl });
+});
+
+// 4. The massager chat
+scene(13.0, 4.2, { type: "wipe", ox: W, oy: H }, (t) => {
+  x.fillStyle = C.ink; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.rose, 8);
+  const freeze = t > 2.0, tt = freeze ? 2.0 : t;
+  // phone
+  const pw = 560, ph = 880, px = W / 2 - pw / 2, py = 230;
+  const zoom = freeze ? 1 + oCubic(prog(t, 2.0, 2.4)) * 0.08 : 1;
+  x.save(); x.translate(W / 2, py + ph / 2); x.scale(zoom, zoom); x.translate(-W / 2, -(py + ph / 2));
+  x.fillStyle = "#000"; rr(px - 18, py - 18, pw + 36, ph + 36, 80); x.fill(); x.fillStyle = C.ink2; rr(px, py, pw, ph, 64); x.fill();
+  x.save(); rr(px, py, pw, ph, 64); x.clip();
+  const r = rng(51), speed = 300 + 2600 * iExpo(clamp(tt / 1.8)), off = tt * speed;
+  for (let i = 0; i < 60; i++) { const left = i % 2 === 0, bw = 200 + r() * 260, by = py + ph - 120 - i * 96 + (off % (96 * 60)); const yy = ((by - py) % (96 * 60) + 96 * 60) % (96 * 60) + py - 600; if (yy < py - 100 || yy > py + ph) continue; x.fillStyle = left ? "#2e2a3d" : C.orange; rr(left ? px + 30 : px + pw - 30 - bw, yy, bw, 70, 30); x.fill(); }
+  x.fillStyle = "rgba(29,26,40,.96)"; x.fillRect(px, py, pw, 150); txt("Claude", W / 2, py + 100, { size: 40, w: 700, c: C.paper, align: "center" });
+  x.restore(); x.restore();
+  txt("САМЫЙ ДЛИННЫЙ ЧАТ", 70, 170, { size: 36, w: 600, f: M, c: C.rose, ls: 6 });
+  // counter pill
+  x.save(); x.fillStyle = C.rose; rr(W / 2 - 330, 1150, 660, 160, 80); x.fill(); x.restore();
+  slot(321, W / 2 - 40, 1275, 120, t, 0.1, 1.7, { c: C.ink, align: "center" });
+  txt("сообщ.", W / 2 + 200, 1265, { size: 48, w: 700, c: C.ink, align: "center" });
+  if (freeze) {
+    const p = oBack(prog(t, 2.05, 2.4), 1.3);
+    x.save(); x.fillStyle = "rgba(10,9,16,.6)"; x.globalAlpha = prog(t, 2.0, 2.15); x.fillRect(0, 0, W, H); x.restore();
+    x.save(); x.translate(W / 2, 760); x.rotate(-0.05); x.scale(p, p); x.fillStyle = C.paper; rr(-470, -230, 940, 460, 40); x.fill(); x.restore();
+    if (t > 2.3) { typewriter("«Сценарий ролика", 150, 720, t, 2.3, 26, { size: 64, c: C.ink, maxW: 780, rot: -0.05 }); typewriter("с массажёром»", 150, 810, t, 2.95, 26, { size: 64, c: C.ink, maxW: 780, rot: -0.05 }); }
+    const q = prog(t, 3.5, 3.7); if (q > 0) txt("?!", W * 0.82, 560, { size: 240, c: C.orange, rot: 0.25 + (1 - oElastic(q)) * 1.5, s: oElastic(q), align: "center", chroma: 6 });
+  }
+});
+
+// 5. Secret badges
+scene(17.2, 3.0, { type: "cut" }, (t) => {
+  x.fillStyle = "#0b0a12"; x.fillRect(-80, -80, W + 160, H + 160);
+  const sa = Math.sin(t * 1.8) * 0.35; x.save(); x.translate(W / 2, -100); x.rotate(sa); const g = x.createLinearGradient(0, 0, 0, 1900); g.addColorStop(0, "rgba(242,233,78,.35)"); g.addColorStop(1, "rgba(242,233,78,0)"); x.fillStyle = g; x.beginPath(); x.moveTo(-60, 0); x.lineTo(60, 0); x.lineTo(520, 1900); x.lineTo(-520, 1900); x.closePath(); x.fill(); x.restore();
+  const r = rng(61); x.save(); x.fillStyle = C.lemon; for (let i = 0; i < 60; i++) { const px = r() * W, py = ((r() * H - t * (40 + r() * 80)) % H + H) % H; x.globalAlpha = 0.3 * r(); x.beginPath(); x.arc(px, py, 2 + r() * 3, 0, 6.283); x.fill(); } x.restore();
+  rise("СЕКРЕТНАЯ КАРТОЧКА", 70, 260, t, 0.05, { size: 38, w: 600, f: M, c: C.lemon, ls: 6 });
+  rise("Тайные", 70, 400, t, 0.12, { size: 120, c: C.lemon }); rise("достижения", 70, 530, t, 0.2, { size: 120, c: C.lemon });
+  const BADGES = [["Ночной клуб", "Пиковый час — глубокой ночью", "moon"], ["Неделя без пропусков", "10 дней подряд", "10"], ["Марафонец", "321 сообщение в одном чате", "321"]];
+  BADGES.forEach(([a, b, icon], i) => {
+    const at = 0.6 + i * 0.4, p = prog(t, at, at + 0.2); if (p <= 0) return;
+    const s = 1 + (1 - oCubic(p)) * 1.4, rot = [-0.035, 0.03, -0.02][i];
+    x.save(); x.translate(W / 2, 760 + i * 220); x.rotate(rot - (1 - p) * 0.3); x.scale(s, s); x.globalAlpha = oCubic(p);
+    x.fillStyle = C.ink2; rr(-470, -90, 940, 180, 30); x.fill(); x.strokeStyle = C.lemon; x.lineWidth = 6; rr(-470, -90, 940, 180, 30); x.stroke();
+    x.save(); rr(-470, -90, 940, 180, 30); x.clip(); const sh = ((t - at) * 1400) % 2600 - 600; const sg = x.createLinearGradient(sh - 120, 0, sh + 120, 0); sg.addColorStop(0, "rgba(255,255,255,0)"); sg.addColorStop(0.5, "rgba(255,255,255,.28)"); sg.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = sg; x.translate(-470, 0); x.rotate(0.3); x.fillRect(sh - 120, -400, 240, 800); x.restore();
+    x.fillStyle = C.lemon; x.beginPath(); x.arc(-375, 0, 62, 0, 6.283); x.fill();
+    if (icon === "moon") { x.fillStyle = C.ink2; x.beginPath(); x.arc(-352, -18, 52, 0, 6.283); x.fill(); }
+    else { x.fillStyle = C.ink; fit(icon, 52, 900, D, 100); x.textAlign = "center"; x.fillText(icon, -375, 19); x.textAlign = "left"; }
+    x.fillStyle = C.lemon; fit(a, 54, 900, D, 720); x.fillText(a, -280, -10); fit(b, 36, 500, B, 720); x.globalAlpha *= 0.8; x.fillStyle = C.paper; x.fillText(b, -280, 48);
+    x.restore();
+    if (t - at > 0.2 && t - at < 1.2) dust(t, at + 0.2, W / 2, 760 + i * 220, 24, C.lemon, 90 + i, 0.6);
+  });
+});
+
+// 6. Type card flip
+scene(20.2, 3.0, { type: "wipe", ox: W / 2, oy: H / 2 }, (t) => {
+  x.fillStyle = C.cobalt; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.lemon, 12);
+  const ang = lerp(Math.PI, 0, oBack(prog(t, 0.1, 0.8), 1.2)), sx = Math.cos(ang), front = sx >= 0;
+  x.save(); x.translate(W / 2, 760); x.scale(Math.max(0.02, Math.abs(sx)), 1); x.rotate((1 - Math.abs(sx)) * 0.05);
+  x.shadowColor = "rgba(0,0,0,.45)"; x.shadowBlur = 60; x.shadowOffsetY = 30;
+  x.fillStyle = front ? C.paper : C.ink; rr(-430, -540, 860, 1080, 50); x.fill(); x.shadowColor = "transparent";
+  if (front) {
+    x.fillStyle = C.cobalt; font(36, 600, M); x.letterSpacing = "6px"; x.fillText("ТВОЙ ТИП", -360, -420); x.letterSpacing = "0px";
+    const sz = fit("Инженер", 190, 900, D, 720); x.fillStyle = C.ink; x.fillText("Инженер", -360, 20);
+    font(46, 700, B); x.fillStyle = C.ink; x.fillText("Claude — твой второй", -360, 180); x.fillText("разработчик в команде", -360, 240);
+    x.fillStyle = C.orange; rr(-360, 330, 300, 90, 45); x.fill(); x.fillStyle = C.ink; font(40, 900, D); x.fillText("Код", -320, 392);
+    x.fillStyle = C.lemon; rr(-40, 330, 340, 90, 45); x.fill(); x.fillStyle = C.ink; x.fillText("Ошибки", 0, 392);
+  } else { txt("?", 0, 120, { size: 420, c: C.lemon, align: "center" }); }
+  x.restore();
+  if (t > 1.6) {
+    const names = ["Креатор", "Исследователь", "Стратег", "Собеседник"], cols = [C.orange, C.mint, C.lemon, C.rose];
+    if (t > 2.0) { const k = Math.floor((t - 2.0) / 0.13) % names.length; txt(names[k], W / 2, 1590, { size: 70, c: cols[k], align: "center", stroke: C.ink, strokeW: 12 }); }
+  }
+});
+function slamCentered(s, y, t, at) { slam(s, W / 2, y, t, at, { size: 96, c: C.lemon, align: "center", stroke: C.ink, strokeW: 14 }); }
+
+// 7. CTA with phone + tap + cards flying out
+scene(23.2, 4.8, { type: "zoom" }, (t) => {
+  x.fillStyle = C.orange; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.lemon, 15);
+  const cards = [[C.cobalt, "73"], [C.plum, "00:00"], [C.lemon, "10"], [C.rose, "321"], [C.mint, "Инженер"]];
+  cards.forEach(([col, label], i) => {
+    const p = oBack(prog(t, 1.15 + i * 0.08, 1.75 + i * 0.08), 1.3); if (p <= 0) return;
+    const a = -0.9 + i * 0.45, tx = W / 2 + Math.sin(a) * 430, ty = 760 - Math.cos(a) * 260;
+    x.save(); x.translate(lerp(W / 2, tx, p), lerp(800, ty, p)); x.rotate(a * 0.6 * p); x.scale(0.4 + 0.6 * p, 0.4 + 0.6 * p);
+    x.shadowColor = "rgba(0,0,0,.35)"; x.shadowBlur = 30; x.fillStyle = col; rr(-130, -220, 260, 440, 30); x.fill(); x.shadowColor = "transparent";
+    x.fillStyle = col === C.lemon || col === C.mint ? C.ink : C.paper; fit(label, 70, 900, D, 220); x.textAlign = "center"; x.fillText(label, 0, 20); x.restore();
+  });
+  const pw = 420, ph = 760, px = W / 2 - pw / 2, py = 470, enter = oBack(prog(t, 0, 0.5), 1.2);
+  x.save(); x.translate(0, (1 - enter) * 900);
+  x.shadowColor = "rgba(0,0,0,.4)"; x.shadowBlur = 50; x.fillStyle = "#000"; rr(px - 14, py - 14, pw + 28, ph + 28, 64); x.fill(); x.shadowColor = "transparent";
+  x.fillStyle = C.ink; rr(px, py, pw, ph, 52); x.fill();
+  x.fillStyle = C.orange; x.beginPath(); x.arc(px + 50, py + 80, 10, 0, 6.283); x.fill();
+  font(20, 600, M); x.fillStyle = "#a39db3"; x.fillText("КОМПРОМАТ", px + 72, py + 87);
+  font(44, 900, D); x.fillStyle = C.paper; x.fillText("Весь", px + 40, py + 170); x.fillText("компромат", px + 40, py + 222); x.fillText("на твой год", px + 40, py + 274); x.fillStyle = C.orange; x.fillText("с Claude", px + 40, py + 326);
+  const tap = t > 0.95 && t < 1.15 ? 0.94 : 1;
+  x.save(); x.translate(px + 40 + 170, py + 430); x.scale(tap, tap); x.fillStyle = C.orange; rr(-170, -45, 340, 90, 45); x.fill(); x.fillStyle = C.ink; font(26, 700, B); x.textAlign = "center"; x.fillText("Загрузить экспорт", 0, 9); x.restore();
+  x.fillStyle = "#2e2a3d"; rr(px + 40, py + 520, pw - 80, 190, 24); x.fill();
+  // finger
+  const fp = ioCubic(prog(t, 0.45, 0.95)), fx = lerp(W + 100, px + 210, fp), fy = lerp(1500, py + 450, fp);
+  if (t > 0.45 && t < 1.6) { x.save(); x.globalAlpha = 1 - prog(t, 1.3, 1.6); x.fillStyle = "rgba(243,239,230,.9)"; x.beginPath(); x.arc(fx, fy, 38, 0, 6.283); x.fill(); const rp = prog(t, 0.95, 1.4); if (rp > 0) { x.strokeStyle = C.paper; x.lineWidth = 6; x.globalAlpha = 1 - rp; x.beginPath(); x.arc(fx, fy, 38 + rp * 120, 0, 6.283); x.stroke(); } x.restore(); }
+  x.restore();
+  slam("Узнай свой", W / 2, 230, t, 0.15, { size: 110, c: C.ink, align: "center" });
+  slam("компромат", W / 2, 360, t, 0.35, { size: 110, c: C.ink, align: "center" });
+  const chips = ["бесплатно", "2 минуты", "чаты не уходят"]; font(32, 700, D);
+  let cx = W / 2 - (chips.reduce((a, c) => a + x.measureText(c).width + 48, 0) + 16 * 2) / 2;
+  chips.forEach((c, i) => { const p = oBack(prog(t, 1.7 + i * 0.15, 2.0 + i * 0.15), 2); font(32, 700, D); const w = x.measureText(c).width + 48; if (p > 0) { x.save(); x.translate(cx + w / 2, 1330); x.scale(p, p); x.fillStyle = C.paper; rr(-w / 2, -40, w, 80, 40); x.fill(); x.fillStyle = C.ink; x.textAlign = "center"; x.fillText(c, 0, 11); x.restore(); } cx += w + 16; });
+  const pp = prog(t, 2.25, 2.5);
+  if (pp > 0) { const s = oBack(pp, 2) * (1 + 0.04 * Math.sin((t - 2.5) * 9) * (t > 2.5 ? 1 : 0)); x.save(); x.translate(W / 2, 1480); x.scale(s, s); x.fillStyle = C.ink; rr(-440, -80, 880, 160, 80); x.fill(); x.fillStyle = C.paper; font(56, 900, D); x.textAlign = "center"; x.fillText("ссылка в профиле ↑", 0, 20); x.restore(); }
+  rise(HANDLE, W / 2, 1625, t, 2.55, { size: 64, c: C.ink, align: "center" });
+  confettiRain(t, 1.9, 9, 160);
+});
+
+/* ---------- compositor ---------- */
+function drawScene(i, t) { const s = SCENES[i]; x.save(); s.draw(t - s.start); x.restore(); }
+function render(t) {
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  let i = SCENES.findIndex((s) => t >= s.start && t < s.start + s.dur); if (i < 0) i = SCENES.length - 1;
+  const [dx, dy, rot] = shake(t), cam = 1 + 0.025 * Math.sin(t * 0.6);
+  x.translate(W / 2 + dx, H / 2 + dy); x.rotate(rot); x.scale(cam, cam); x.translate(-W / 2, -H / 2);
+  const s = SCENES[i], lt = t - s.start, T = 0.45;
+  if (i > 0 && s.trans && s.trans.type !== "cut" && lt < T) {
+    const p = ioCubic(lt / T);
+    if (s.trans.type === "wipe") { drawScene(i - 1, t); x.save(); x.beginPath(); x.arc(s.trans.ox, s.trans.oy, p * 2400, 0, 6.283); x.clip(); drawScene(i, t); x.restore(); }
+    else if (s.trans.type === "zoom") {
+      x.save(); x.translate(W / 2, H / 2); x.scale(1 + p * 2.5, 1 + p * 2.5); x.translate(-W / 2, -H / 2); drawScene(i - 1, t); x.restore();
+      x.save(); x.globalAlpha = p; x.translate(W / 2, H / 2); x.scale(0.6 + 0.4 * p, 0.6 + 0.4 * p); x.translate(-W / 2, -H / 2); drawScene(i, t); x.restore();
+    }
+  } else drawScene(i, t);
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  subtitles(t);
+  // chromatic glitch right after impacts
+  for (const im of IMPACTS) { const d = t - im; if (d >= 0 && d < 0.18) glitch(t, 1 - d / 0.18, 7); }
+  post(t);
+}
+window.DUR = DUR; window.render = render;
+window.ready = Promise.all([["900", D], ["700", D], ["700", B], ["500", B], ["600", M]].map(([w, f]) => document.fonts.load(`${w} 80px ${f}`, "Компромат ВСЁ 0123 ?!"))).then(() => document.fonts.ready);
+if (!navigator.webdriver) { const t0 = performance.now(); (function loop(now) { render(((now - t0) / 1000) % DUR); requestAnimationFrame(loop); })(t0); }
+</script>
+</body>
+</html>
