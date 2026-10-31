@@ -75,7 +75,7 @@ h1 em { font-style: normal; color: var(--tangerine); }
   border-radius: 26px; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none;
   box-shadow: 0 30px 80px -30px #000, 0 0 0 1px #ffffff14;
   background: var(--cobalt); color: var(--paper); isolation: isolate;
-  transition: background .5s ease, color .5s ease;
+  transition: color .4s ease, transform .25s ease;
 }
 .bars { position: absolute; z-index: 3; top: 14px; left: 14px; right: 14px; display: flex; gap: 4px; }
 .bars span { flex: 1; height: 3px; border-radius: 3px; background: color-mix(in srgb, currentColor 28%, transparent); overflow: hidden; }
@@ -94,7 +94,6 @@ h1 em { font-style: normal; color: var(--tangerine); }
 .anim > * { animation: rise .7s cubic-bezier(.2,.8,.2,1) both; }
 .anim > *:nth-child(2) { animation-delay: .12s; } .anim > *:nth-child(3) { animation-delay: .24s; } .anim > *:nth-child(4) { animation-delay: .36s; }
 @keyframes rise { from { transform: translateY(18px); opacity: .0; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .anim > * { animation: none; } .story { transition: none; } }
 
 .hours { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; align-items: end; height: 120px; }
 .hours span { background: currentColor; opacity: .35; border-radius: 3px 3px 0 0; min-height: 3px; }
@@ -128,11 +127,73 @@ h1 em { font-style: normal; color: var(--tangerine); }
 .modal img { max-height: 68vh; max-width: 100%; border-radius: 14px; box-shadow: 0 20px 60px -20px #000; -webkit-touch-callout: default; }
 .modal p { margin: 0; font-size: 14px; color: #d9d3e6; text-align: center; }
 .modal .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* ---------- motion ---------- */
+.wipe { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.fx-in { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
+.slide { z-index: 3; }
+.slide.ghost { z-index: 0; }
+.slide.ghost * { animation: none !important; }
+.bars, .tag { z-index: 4 !important; }
+.story::before { content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; background: radial-gradient(circle at var(--gx, 50%) var(--gy, 0%), #ffffff33, transparent 48%); opacity: var(--glare, 0); transition: opacity .3s; }
+.story.held { transform: scale(.985) !important; }
+.w { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: .1em; margin-bottom: -.1em; }
+.w > span { display: inline-block; animation: wordUp .8s cubic-bezier(.2,.9,.1,1) both; animation-delay: calc(var(--i) * 70ms + .12s); }
+@keyframes wordUp { from { transform: translateY(110%) rotate(5deg); } to { transform: none; } }
+.ch { display: inline-block; animation: drop .75s cubic-bezier(.3,1.5,.4,1) both; animation-delay: calc(var(--i) * 55ms + .15s); }
+@keyframes drop { from { transform: translateY(-130%) rotate(-14deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.anim .hours span { transform-origin: bottom; animation: grow .7s cubic-bezier(.2,.9,.2,1) both; animation-delay: calc(var(--i) * 28ms + .3s); }
+.anim .hours span.peak { animation: grow .7s cubic-bezier(.2,.9,.2,1) both, bob 1.4s ease-in-out infinite alternate; animation-delay: calc(var(--i) * 28ms + .3s), 1.3s; }
+@keyframes grow { from { transform: scaleY(0); } to { transform: none; } }
+@keyframes bob { to { transform: translateY(-6px); } }
+.anim .week span, .anim .sum > div { animation: popIn .55s cubic-bezier(.3,1.6,.4,1) both; animation-delay: calc(var(--i) * 75ms + .35s); }
+@keyframes popIn { from { transform: scale(0) rotate(-18deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.anim .rank li { animation: slideIn .6s cubic-bezier(.2,.9,.2,1) both; animation-delay: calc(var(--i) * 110ms + .2s); }
+@keyframes slideIn { from { transform: translateX(-48px); opacity: 0; } to { transform: none; opacity: 1; } }
+.badges { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.badges li { display: grid; grid-template-columns: 44px minmax(0,1fr); gap: 12px; align-items: center; border: 2px solid currentColor; border-radius: 14px; padding: 10px 12px; transform: rotate(var(--r)); }
+.anim .badges li { animation: stamp .55s cubic-bezier(.3,1.4,.4,1) both; animation-delay: calc(var(--i) * 260ms + .35s); }
+@keyframes stamp { from { transform: scale(2.2) rotate(-10deg); opacity: 0; } to { transform: rotate(var(--r)); opacity: 1; } }
+.badges .em { font-size: 30px; line-height: 1; text-align: center; }
+.badges b { display: block; font: 700 17px/1.2 var(--display); }
+.badges small { display: block; font-size: 13px; opacity: .8; }
+.brand .dot { width: 14px; height: 14px; padding: 0; border: 0; border-radius: 50%; background: var(--tangerine); cursor: pointer; animation: pulse 2.4s ease-in-out infinite; }
+.brand .dot.bump { animation: bump .3s ease; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 #ff7a1a66; } 50% { box-shadow: 0 0 0 7px #ff7a1a00; } }
+@keyframes bump { 50% { transform: scale(1.6); } }
+h1 em { cursor: pointer; }
+h1 em .lt { display: inline-block; }
+h1 em.jump .lt { animation: jump .6s cubic-bezier(.3,1.6,.5,1); animation-delay: calc(var(--i) * 40ms); }
+@keyframes jump { 40% { transform: translateY(-.32em) rotate(-8deg); } }
+main > * { animation: rise .8s cubic-bezier(.2,.8,.2,1) both; }
+main > *:nth-child(2) { animation-delay: .08s; } main > *:nth-child(3) { animation-delay: .16s; } main > *:nth-child(4) { animation-delay: .24s; }
+#tagL { cursor: pointer; }
+#fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 15; pointer-events: none; }
+.eggs { font: 400 12px/1.4 var(--mono); color: var(--muted); text-align: center; margin: 0; display: grid; gap: 6px; justify-items: center; }
+.eggs .dots { letter-spacing: .3em; color: var(--tangerine); }
+.eggs details { max-width: 420px; }
+.eggs summary { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.eggs ul { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; text-align: left; }
+.toast { position: fixed; z-index: 30; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px);
+  background: var(--paper); color: var(--ink); font: 600 14px/1.35 var(--body); padding: 12px 16px; border-radius: 14px; box-shadow: 0 16px 40px -12px #000; display: flex; gap: 10px; align-items: center; animation: toastIn .5s cubic-bezier(.2,1.3,.3,1) both; }
+.toast small { font: 600 11px/1 var(--mono); background: var(--tangerine); border-radius: 6px; padding: 5px 7px; white-space: nowrap; }
+.toast.out { animation: toastOut .35s ease-in both; }
+@keyframes toastIn { from { transform: translate(-50%, 160%); } to { transform: translateX(-50%); } }
+@keyframes toastOut { to { transform: translate(-50%, 160%); opacity: 0; } }
+/* retro mode (easter egg) */
+body.retro .story { border-radius: 4px; }
+body.retro .story .big, body.retro .story .mid, body.retro .story .rank li, body.retro .story .sum b, body.retro .story .badges b { font-family: "Press Start 2P", var(--mono); letter-spacing: 0; font-weight: 400; }
+body.retro .slide .big { font-size: clamp(34px, 11vw, 56px); line-height: 1.15; }
+body.retro .slide .mid { font-size: clamp(16px, 4.6vw, 22px); line-height: 1.45; }
+body.retro .rank li, body.retro .rank li:first-child { font-size: clamp(14px, 4vw, 18px); }
+body.retro .sum b { font-size: clamp(13px, 3.8vw, 17px); line-height: 1.3; }
+body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none; background: repeating-linear-gradient(to bottom, #0000 0 2px, #0000002e 2px 4px); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 
 <div class="wrap">
   <main>
-    <div class="brand"><i></i> Claude Wrapped · итоги общения с ИИ</div>
+    <div class="brand"><button class="dot" id="dot" type="button" aria-label="Оранжевая точка"></button> Claude Wrapped · итоги общения с ИИ</div>
     <h1>Твой год <em>с&nbsp;Claude</em> в&nbsp;десяти карточках</h1>
     <p class="lead">Загрузи экспорт своих чатов, и приложение посчитает, сколько ты общаешься с Claude, о чём чаще всего спрашиваешь, в какое время суток работаешь и сколько часов удалось сэкономить. Итог сохраняется как сторис-карточки, которыми удобно поделиться.</p>
 
@@ -164,7 +225,9 @@ h1 em { font-style: normal; color: var(--tangerine); }
   </main>
 
   <aside class="stage" aria-label="Карточки итогов">
-    <div class="story" id="story" tabindex="0" aria-roledescription="история" aria-label="Карточки итогов. Нажми справа, чтобы листать вперёд, слева — назад.">
+    <div class="story" id="story" tabindex="0" aria-roledescription="история" aria-label="Карточки итогов. Нажми справа, чтобы листать вперёд, слева — назад. Зажми, чтобы остановить.">
+      <div class="wipe" id="wipe"></div>
+      <canvas class="fx-in" id="fxin" aria-hidden="true"></canvas>
       <div class="bars" id="bars"></div>
       <div class="tag"><span id="tagL">Claude Wrapped</span><span id="tagR"></span></div>
       <div class="slide" id="slide"></div>
@@ -177,8 +240,24 @@ h1 em { font-style: normal; color: var(--tangerine); }
       <button class="ctrl" id="copy" type="button">Скопировать итоги</button>
     </div>
     <p class="source" id="source">Сейчас показан пример с выдуманными данными. Загрузи свой экспорт, чтобы увидеть свои цифры. Карточку удобно сохранить скриншотом.</p>
+    <div class="eggs">
+      <span class="dots" id="eggs-dots" aria-hidden="true">○○○○○○</span>
+      <details>
+        <summary id="eggs-count">Пасхалок найдено: 0 из 6</summary>
+        <ul>
+          <li>● Оранжевая точка любит, когда по ней стучат.</li>
+          <li>● Слово «Claude» в заголовке боится щекотки.</li>
+          <li>● Код из 80-х: ↑↑↓↓←→←→BA. На телефоне три быстрых тапа по надписи на карточке.</li>
+          <li>● Напиши на клавиатуре тайное слово. Это имя.</li>
+          <li>● Загляни сюда ночью.</li>
+          <li>● Особые достижения открывают секретную карточку.</li>
+        </ul>
+      </details>
+    </div>
   </aside>
 </div>
+
+<canvas id="fx" aria-hidden="true"></canvas>
 
 <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal-box">
@@ -253,7 +332,7 @@ h1 em { font-style: normal; color: var(--tangerine); }
     const hours = new Array(24).fill(0), week = new Array(7).fill(0), months = new Map(), days = new Set();
     let humanMsgs = 0, aiMsgs = 0, humanWords = 0, aiWords = 0, first = null, last = null;
     const tokenCount = new Map(), archScore = Object.fromEntries(ARCH.map((a) => [a.key, 0]));
-    let longest = convs[0];
+    let longest = convs[0], newYear = false, fri13 = false;
     for (const c of convs) {
       if (c.msgs.length > longest.msgs.length) longest = c;
       const firstHuman = c.msgs.find((m) => m.human);
@@ -269,6 +348,9 @@ h1 em { font-style: normal; color: var(--tangerine); }
           humanMsgs++; humanWords += w;
           hours[m.t.getHours()]++; week[(m.t.getDay() + 6) % 7]++;
           days.add(dayKey(m.t));
+          const mo = m.t.getMonth(), dd = m.t.getDate(), hh = m.t.getHours();
+          if ((mo === 11 && dd === 31 && hh >= 22) || (mo === 0 && dd === 1 && hh < 3)) newYear = true;
+          if (m.t.getDay() === 5 && dd === 13) fri13 = true;
           const mk = `${m.t.getFullYear()}-${m.t.getMonth()}`;
           months.set(mk, (months.get(mk) || 0) + 1);
         } else { aiMsgs++; aiWords += w; }
@@ -294,11 +376,21 @@ h1 em { font-style: normal; color: var(--tangerine); }
     const arch = archKey && archKey[1] > 0 ? ARCH.find((a) => a.key === archKey[0]) : { title: "Универсал", line: "Код, тексты, идеи, вопросы обо всём: ты пробуешь Claude во всём подряд." };
     // Time saved: Claude's words written by hand at ~20 words/minute (drafting + looking things up).
     const savedHours = aiWords / 20 / 60;
+    const badges = [];
+    if (peakHour < 5) badges.push(["🦉", "Ночной клуб", "Твой пиковый час — глубокой ночью"]);
+    if (streak >= 30) badges.push(["🔥", "Железная серия", `${streak} дней подряд без пропусков`]);
+    else if (streak >= 7) badges.push(["🔥", "Неделя без пропусков", `${streak} дней подряд`]);
+    if (newYear) badges.push(["🎄", "Новогодняя ночь", "Писать Claude под бой курантов — сильно"]);
+    if (fri13) badges.push(["👻", "Пятница, 13-е", "Суеверия? Не слышали"]);
+    if (longest.msgs.length >= 100) badges.push(["🏃", "Марафонец", "100+ сообщений в одном чате"]);
+    if (humanWords > aiWords) badges.push(["🗣️", "Главный говорун", "Ты пишешь больше, чем Claude"]);
+    if (convs.length === 42) badges.push(["🌌", "Ровно 42", "Ответ на главный вопрос жизни, Вселенной и всего такого"]);
+    if (convs.length >= 365) badges.push(["📅", "Чат в день", "365+ разговоров"]);
     return {
       chats: convs.length, humanMsgs, aiMsgs, humanWords, aiWords, first, last,
       activeDays: days.size, streak, hours, week, peakHour, peakDay,
       bestMonth: bestMonth ? `${MONTHS[bm]} ${by}` : "—", bestMonthN,
-      topics, longest: { name: longest.name, n: longest.msgs.length }, arch, savedHours,
+      topics, longest: { name: longest.name, n: longest.msgs.length }, arch, savedHours, badges,
     };
   }
 
@@ -319,7 +411,7 @@ h1 em { font-style: normal; color: var(--tangerine); }
       const day = new Date(start.getTime() + Math.floor(rnd() * 360) * 864e5);
       const hour = rnd() < .62 ? 20 + Math.floor(rnd() * 4) : 10 + Math.floor(rnd() * 10);
       day.setHours(hour % 24, Math.floor(rnd() * 60));
-      const len = 2 + Math.floor(rnd() * (i === 41 ? 1 : 14)) * 2 + (i === 41 ? 86 : 0);
+      const len = 2 + Math.floor(rnd() * (i === 41 ? 1 : 14)) * 2 + (i === 41 ? 102 : 0);
       const msgs = [];
       for (let j = 0; j < len; j++) {
         const human = j % 2 === 0;
@@ -328,6 +420,10 @@ h1 em { font-style: normal; color: var(--tangerine); }
       }
       convs.push({ name: names[i % names.length], created: day, msgs });
     }
+    const ny = new Date(2025, 11, 31, 23, 41);
+    convs.push({ name: "Тост на Новый год", created: ny, msgs: [
+      { human: true, t: ny, text: "слово ".repeat(14) }, { human: false, t: new Date(ny.getTime() + 60e3), text: "слово ".repeat(180) },
+    ] });
     return convs;
   }
 
@@ -347,54 +443,61 @@ h1 em { font-style: normal; color: var(--tangerine); }
   function buildSlides(s) {
     const novels = s.aiWords / 80000, pages = s.humanWords / 300;
     const [chronoTitle, chronoLine] = chronotype(s.peakHour);
+    const night = s.peakHour >= 18 || s.peakHour < 5;
     const maxH = Math.max(...s.hours, 1), maxW = Math.max(...s.week, 1);
     const period = s.first && s.last ? `${dateRu(s.first)} — ${dateRu(s.last)}` : "";
     const dayName = DAYS[(s.peakDay + 1) % 7];
-    return [
-      () => `<div class="stack"><div class="kicker">${esc(period)}</div><div class="mid">Вот как прошло твоё время с&nbsp;Claude</div></div>
-             <div class="big">${fmt(s.activeDays)}</div>
-             <div class="stack"><div class="txt">${plural(s.activeDays, "день", "дня", "дней")}, когда в чате было хотя бы одно твоё сообщение. Листай дальше.</div></div>`,
-      () => `<div class="kicker">Разговоры</div>
-             <div class="stack"><div class="big">${fmt(s.chats)}</div><div class="mid">${plural(s.chats, "чат", "чата", "чатов")}</div></div>
-             <div class="txt">В них ${fmt(s.humanMsgs)} ${plural(s.humanMsgs, "твоё сообщение", "твоих сообщения", "твоих сообщений")} и ${fmt(s.aiMsgs)} ${plural(s.aiMsgs, "ответ", "ответа", "ответов")} Claude.</div>`,
-      () => `<div class="kicker">Слова</div>
-             <div class="stack"><div class="big">${fmt(s.aiWords)}</div><div class="mid">${plural(s.aiWords, "слово", "слова", "слов")} написал для тебя Claude</div></div>
-             <div class="stack"><div class="txt">Это ≈ ${novels >= 1 ? novels.toFixed(1).replace(".", ",") + " романа" : Math.max(1, Math.round(novels * 100)) + "% романа"}. А твоих слов ${fmt(s.humanWords)}, примерно ${fmt(Math.max(1, pages))} ${plural(Math.max(1, pages), "страница", "страницы", "страниц")} книги.</div><div class="fine">Средний роман ≈ 80 000 слов, страница ≈ 300 слов</div></div>`,
-      () => `<div class="kicker">Твой ритм</div>
+    const num = (n) => `<span data-to="${Math.round(n)}">${fmt(n)}</span>`;
+    const T = THEMES;
+    const list = [
+      { theme: T[0], motif: "bubbles", html: () => `<div class="stack"><div class="kicker">${esc(period)}</div><div class="mid">Вот как прошло твоё время с&nbsp;Claude</div></div>
+             <div class="big">${num(s.activeDays)}</div>
+             <div class="stack"><div class="txt">${plural(s.activeDays, "день", "дня", "дней")}, когда в чате было хотя бы одно твоё сообщение. Листай дальше.</div></div>` },
+      { theme: T[1], motif: "rings", html: () => `<div class="kicker">Разговоры</div>
+             <div class="stack"><div class="big">${num(s.chats)}</div><div class="mid">${plural(s.chats, "чат", "чата", "чатов")}</div></div>
+             <div class="txt">В них ${fmt(s.humanMsgs)} ${plural(s.humanMsgs, "твоё сообщение", "твоих сообщения", "твоих сообщений")} и ${fmt(s.aiMsgs)} ${plural(s.aiMsgs, "ответ", "ответа", "ответов")} Claude.</div>` },
+      { theme: T[2], motif: "letters", html: () => `<div class="kicker">Слова</div>
+             <div class="stack"><div class="big">${num(s.aiWords)}</div><div class="mid">${plural(s.aiWords, "слово", "слова", "слов")} написал для тебя Claude</div></div>
+             <div class="stack"><div class="txt">Это ≈ ${novels >= 1 ? novels.toFixed(1).replace(".", ",") + " романа" : Math.max(1, Math.round(novels * 100)) + "% романа"}. А твоих слов ${fmt(s.humanWords)}, примерно ${fmt(Math.max(1, pages))} ${plural(Math.max(1, pages), "страница", "страницы", "страниц")} книги.</div><div class="fine">Средний роман ≈ 80 000 слов, страница ≈ 300 слов</div></div>` },
+      { theme: T[3], motif: night ? "stars" : "rays", html: () => `<div class="kicker">Твой ритм</div>
              <div class="stack"><div class="mid">${chronoTitle}</div><div class="txt">${chronoLine} Чаще всего ты пишешь около <b>${String(s.peakHour).padStart(2, "0")}:00</b>.</div></div>
-             <div><div class="hours">${s.hours.map((n, i) => `<span class="${i === s.peakHour ? "peak" : ""}" style="height:${Math.max(3, (n / maxH) * 100)}%"></span>`).join("")}</div>
-             <div class="hours-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div></div>`,
-      () => `<div class="kicker">Неделя</div>
+             <div><div class="hours">${s.hours.map((n, i) => `<span class="${i === s.peakHour ? "peak" : ""}" style="--i:${i};height:${Math.max(3, (n / maxH) * 100)}%"></span>`).join("")}</div>
+             <div class="hours-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div></div>` },
+      { theme: T[4], motif: "squares", html: () => `<div class="kicker">Неделя</div>
              <div class="stack"><div class="mid">Твой день: ${dayName}</div><div class="txt">В ${DAYS_ACC[(s.peakDay + 1) % 7]} ты пишешь Claude чаще всего. Рекордная серия: <b>${fmt(s.streak)} ${plural(s.streak, "день", "дня", "дней")} подряд</b>.</div></div>
-             <div class="week">${s.week.map((n, i) => `<div><span style="opacity:${(0.18 + 0.82 * (n / maxW)).toFixed(2)}"></span>${DAYS_SHORT[i]}</div>`).join("")}</div>`,
-      () => `<div class="kicker">Главные темы</div>
-             ${s.topics.length ? `<ol class="rank">${s.topics.map(([w, n], i) => `<li><small>${i + 1}</small><span>${esc(w)}</span><small>×${n}</small></li>`).join("")}</ol>` : `<div class="mid">Темы слишком разные, чтобы выбрать главную</div>`}
-             <div class="fine">Самые частые слова в названиях чатов</div>`,
-      () => `<div class="kicker">Самый длинный разговор</div>
-             <div class="stack"><div class="big">${fmt(s.longest.n)}</div><div class="txt">${plural(s.longest.n, "сообщение", "сообщения", "сообщений")} в одном чате:</div></div>
-             <div class="mid">«${esc(s.longest.name.length > 70 ? s.longest.name.slice(0, 68) + "…" : s.longest.name)}»</div>`,
-      () => `<div class="kicker">Самый активный месяц</div>
-             <div class="stack"><div class="mid" style="text-transform:capitalize">${esc(s.bestMonth)}</div><div class="big">${fmt(s.bestMonthN)}</div></div>
-             <div class="txt">${plural(s.bestMonthN, "сообщение", "сообщения", "сообщений")} за один месяц. Похоже, тогда шёл большой проект.</div>`,
-      () => `<div class="kicker">Твой тип</div>
-             <div class="big" style="font-size:clamp(44px,14vw,72px)">${esc(s.arch.title)}</div>
-             <div class="txt">${esc(s.arch.line)}</div>`,
-      () => `<div class="stack"><div class="kicker">Claude Wrapped · итог</div><div class="mid">${esc(s.arch.title)}</div></div>
-             <div class="sum">
-               <div><b>${fmt(s.chats)}</b><small>чатов</small></div>
-               <div><b>${fmt(s.activeDays)}</b><small>активных дней</small></div>
-               <div><b>${fmt(s.aiWords)}</b><small>слов от Claude</small></div>
-               <div><b>${fmt(s.streak)}</b><small>дней подряд</small></div>
-               <div><b>${String(s.peakHour).padStart(2, "0")}:00</b><small>пиковый час</small></div>
-               <div><b>≈${fmt(s.savedHours)} ч</b><small>сэкономлено</small></div>
-             </div>
-             <div class="stack"><div class="fine">Экономия: слова Claude, написанные вручную со скоростью ≈ 20 слов в минуту. Это оценка, а не точный замер.</div>${CREATOR.link || CREATOR.handle ? `<div class="kicker">Сделай свои итоги: ${esc(CREATOR.link || CREATOR.handle)}</div>` : ""}</div>`,
+             <div class="week">${s.week.map((n, i) => `<div><span style="--i:${i};opacity:${(0.18 + 0.82 * (n / maxW)).toFixed(2)}"></span>${DAYS_SHORT[i]}</div>`).join("")}</div>` },
+      { theme: T[5], motif: "bubbles", html: () => `<div class="kicker">Главные темы</div>
+             ${s.topics.length ? `<ol class="rank">${s.topics.map(([w, n], i) => `<li style="--i:${i}"><small>${i + 1}</small><span>${esc(w)}</span><small>×${n}</small></li>`).join("")}</ol>` : `<div class="mid">Темы слишком разные, чтобы выбрать главную</div>`}
+             <div class="fine">Самые частые слова в названиях чатов</div>` },
+      { theme: T[6], motif: "rings", html: () => `<div class="kicker">Самый длинный разговор</div>
+             <div class="stack"><div class="big">${num(s.longest.n)}</div><div class="txt">${plural(s.longest.n, "сообщение", "сообщения", "сообщений")} в одном чате:</div></div>
+             <div class="mid">«${esc(s.longest.name.length > 70 ? s.longest.name.slice(0, 68) + "…" : s.longest.name)}»</div>` },
+      { theme: T[7], motif: "squares", html: () => `<div class="kicker">Самый активный месяц</div>
+             <div class="stack"><div class="mid" style="text-transform:capitalize">${esc(s.bestMonth)}</div><div class="big">${num(s.bestMonthN)}</div></div>
+             <div class="txt">${plural(s.bestMonthN, "сообщение", "сообщения", "сообщений")} за один месяц. Похоже, тогда шёл большой проект.</div>` },
+      { theme: T[8], motif: "confetti", html: () => `<div class="kicker">Твой тип</div>
+             <div class="big letters" style="font-size:clamp(44px,14vw,72px)">${esc(s.arch.title)}</div>
+             <div class="txt">${esc(s.arch.line)}</div>` },
     ];
+    if (s.badges.length) list.push({ theme: { bg: "#12101a", fg: "#f2e94e" }, motif: "stars", egg: "secret", html: () => `<div class="stack"><div class="kicker">Секретная карточка 🤫</div><div class="mid">Твои тайные достижения</div></div>
+             <ul class="badges">${s.badges.slice(0, 5).map((b, i) => `<li style="--i:${i};--r:${[-3, 2, -1.5, 3, -2][i]}deg"><span class="em" aria-hidden="true">${b[0]}</span><span><b>${esc(b[1])}</b><small>${esc(b[2])}</small></span></li>`).join("")}</ul>
+             <div class="fine">Эта карточка появляется не у всех</div>` });
+    list.push({ theme: T[9], motif: "confetti", html: () => `<div class="stack"><div class="kicker">Claude Wrapped · итог</div><div class="mid">${esc(s.arch.title)}</div></div>
+             <div class="sum">
+               <div style="--i:0"><b>${num(s.chats)}</b><small>чатов</small></div>
+               <div style="--i:1"><b>${num(s.activeDays)}</b><small>активных дней</small></div>
+               <div style="--i:2"><b>${num(s.aiWords)}</b><small>слов от Claude</small></div>
+               <div style="--i:3"><b>${num(s.streak)}</b><small>дней подряд</small></div>
+               <div style="--i:4"><b>${String(s.peakHour).padStart(2, "0")}:00</b><small>пиковый час</small></div>
+               <div style="--i:5"><b>≈${num(s.savedHours)} ч</b><small>сэкономлено</small></div>
+             </div>
+             <div class="stack"><div class="fine">Экономия: слова Claude, написанные вручную со скоростью ≈ 20 слов в минуту. Это оценка, а не точный замер.</div>${CREATOR.link || CREATOR.handle ? `<div class="kicker">Сделай свои итоги: ${esc(CREATOR.link || CREATOR.handle)}</div>` : ""}</div>` });
+    return list;
   }
 
   /* ---------- PNG of the summary card (drawn by hand, no libraries) ---------- */
   async function renderPNG(s) {
-    const W = 1080, H = 1920, P = 90, th = THEMES[9];
+    const W = 1080, H = 1920, P = 90, th = THEMES[9]; // same colors as the summary card
     try { await Promise.all(['900 100px "Unbounded"', '400 40px "Onest"', '600 30px "JetBrains Mono"'].map((f) => document.fonts.load(f))); } catch {}
     const c = document.createElement("canvas"); c.width = W; c.height = H;
     const x = c.getContext("2d");
@@ -450,22 +553,83 @@ h1 em { font-style: normal; color: var(--tangerine); }
   let slides = [], idx = 0, startedAt = 0, elapsed = 0, paused = false, raf = 0, isSample = true, stats = null;
   const story = $("story"), slideEl = $("slide"), bars = $("bars");
 
-  function render() {
-    const th = THEMES[idx % THEMES.length];
-    story.style.background = th.bg; story.style.color = th.fg; story.style.setProperty("--story-bg", th.bg);
-    slideEl.className = "slide" + (reduce ? "" : " anim");
-    slideEl.innerHTML = slides[idx]();
+  // Circular reveal from the tap point: new color and new text grow together over a frozen copy of the old card.
+  let wipeAnim = null, slideAnim = null, ghost = null, curBg = null, curFg = null;
+  function stopWipe() {
+    if (wipeAnim) { wipeAnim.cancel(); wipeAnim = null; }
+    if (slideAnim) { slideAnim.cancel(); slideAnim = null; }
+    if (ghost) { ghost.remove(); ghost = null; }
+    $("wipe").style.background = "transparent";
+    if (curBg) story.style.background = curBg;
+  }
+  function transition(th, ox, oy, fill) {
+    const animate = !reduce && curBg !== null && ox !== undefined && !!slideEl.animate;
+    stopWipe();
+    if (animate) {
+      ghost = slideEl.cloneNode(true); ghost.removeAttribute("id"); ghost.className = "slide ghost"; ghost.style.color = curFg;
+      story.insertBefore(ghost, $("wipe"));
+    }
+    fill();
+    story.style.color = th.fg; story.style.setProperty("--story-bg", th.bg);
+    if (animate) {
+      const R = Math.hypot(Math.max(ox, story.clientWidth - ox), Math.max(oy, story.clientHeight - oy)) + 4;
+      const kf = [{ clipPath: `circle(0px at ${ox}px ${oy}px)` }, { clipPath: `circle(${R}px at ${ox}px ${oy}px)` }];
+      const opt = { duration: 650, easing: "cubic-bezier(.65,0,.25,1)" };
+      $("wipe").style.background = th.bg;
+      const a = $("wipe").animate(kf, opt); wipeAnim = a; slideAnim = slideEl.animate(kf, opt);
+      a.onfinish = () => { if (wipeAnim !== a) return; wipeAnim = null; slideAnim = null; story.style.background = th.bg; $("wipe").style.background = "transparent"; if (ghost) { ghost.remove(); ghost = null; } };
+    } else story.style.background = th.bg;
+    curBg = th.bg; curFg = th.fg;
+  }
+  // Big numbers count up from zero.
+  function countUp(root) {
+    if (reduce) return;
+    root.querySelectorAll("[data-to]").forEach((el) => {
+      const to = +el.dataset.to, t0 = performance.now(), dur = 1000 + Math.min(900, String(to).length * 110);
+      el.textContent = "0";
+      const step = (t) => {
+        if (!el.isConnected) return;
+        const p = Math.min(1, (t - t0) / dur);
+        el.textContent = fmt(p >= 1 ? to : to * (1 - Math.pow(2, -10 * p)));
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  // Headlines rise word by word; the type title drops letter by letter.
+  function enhance(root) {
+    if (reduce) return;
+    root.querySelectorAll(".mid").forEach((el) => {
+      if (el.children.length) return;
+      const parts = el.textContent.split(" ");
+      el.innerHTML = parts.map((w, i) => `<span class="w"><span style="--i:${i}">${esc(w)}</span></span>`).join(" ");
+    });
+    root.querySelectorAll(".letters").forEach((el) => {
+      el.innerHTML = [...el.textContent].map((c, i) => `<span class="ch" style="--i:${i}">${esc(c)}</span>`).join("");
+    });
+  }
+
+  function render(ox, oy) {
+    const sl = slides[idx], th = sl.theme;
+    transition(th, ox, oy, () => {
+      slideEl.className = "slide" + (reduce ? "" : " anim");
+      slideEl.innerHTML = sl.html();
+      enhance(slideEl); countUp(slideEl);
+    });
+    startMotif(sl.motif, th.fg);
     [...bars.children].forEach((b, i) => { b.classList.toggle("done", i < idx); b.firstChild.style.width = i < idx ? "100%" : "0"; });
     $("tagL").textContent = BRAND + (CREATOR.handle ? " · " + CREATOR.handle : "");
     $("tagR").innerHTML = isSample ? `<span class="sample"><b>Пример</b></span>` : `${idx + 1} / ${slides.length}`;
+    if (sl.egg && !found.has(sl.egg)) setTimeout(() => egg(sl.egg, "Секретная карточка открыта 🤫"), 900);
     elapsed = 0; startedAt = performance.now();
   }
   function tick(now) {
-    if (!paused) {
+    if (!paused && slides.length) {
       const p = Math.min(1, (elapsed + now - startedAt) / DURATION);
       const bar = bars.children[idx]; if (bar) bar.firstChild.style.width = (p * 100) + "%";
-      if (p >= 1) { if (idx < slides.length - 1) { idx++; render(); } else { setPaused(true); } }
+      if (p >= 1) { if (idx < slides.length - 1) { idx++; render(story.clientWidth / 2, story.clientHeight); } else { setPaused(true); } }
     }
+    try { drawMotif(now); drawPage(); } catch (err) { motif = ""; pparts = []; }
     raf = requestAnimationFrame(tick);
   }
   function setPaused(v) {
@@ -473,10 +637,11 @@ h1 em { font-style: normal; color: var(--tangerine); }
     if (!v && paused) startedAt = performance.now();
     paused = v; $("pause").textContent = v ? "Смотреть" : "Пауза";
   }
-  function go(d) {
+  function go(d, ox, oy) {
     const n = idx + d;
-    if (n < 0) { idx = 0; } else if (n >= slides.length) { idx = 0; } else { idx = n; }
-    render(); if (paused && d) setPaused(false);
+    idx = n < 0 || n >= slides.length ? 0 : n;
+    if (ox === undefined) { ox = story.clientWidth * (d < 0 ? 0.1 : 0.9); oy = story.clientHeight * 0.5; }
+    render(ox, oy); if (paused && d) setPaused(false);
   }
   function load(s, sample) {
     stats = s; isSample = sample; slides = buildSlides(s); idx = 0;
@@ -484,18 +649,38 @@ h1 em { font-style: normal; color: var(--tangerine); }
     $("source").textContent = sample
       ? "Сейчас показан пример с выдуманными данными. Загрузи свой экспорт, чтобы увидеть свои цифры. Карточку удобно сохранить скриншотом."
       : `Твои данные: ${fmt(s.chats)} ${plural(s.chats, "чат", "чата", "чатов")} из экспорта. Сохрани любую карточку скриншотом и выложи в сторис.`;
-    paused = false; $("pause").textContent = "Пауза"; render();
+    paused = false; $("pause").textContent = "Пауза"; render(curBg === null ? undefined : story.clientWidth / 2, story.clientHeight / 2);
     cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
   }
 
+  // Tap: left third goes back, the rest forward. Hold: pause, like Instagram stories.
+  let holdT = 0, held = false, holdWasPaused = false;
+  story.addEventListener("pointerdown", (e) => {
+    if (e.button) return;
+    held = false; clearTimeout(holdT);
+    holdT = setTimeout(() => { held = true; holdWasPaused = paused; setPaused(true); story.classList.add("held"); }, 280);
+  });
+  const endHold = () => { clearTimeout(holdT); if (held) { setPaused(holdWasPaused); story.classList.remove("held"); } };
+  ["pointerup", "pointercancel", "pointerleave"].forEach((t) => story.addEventListener(t, endHold));
   story.addEventListener("click", (e) => {
-    const r = story.getBoundingClientRect();
-    go(e.clientX - r.left < r.width * 0.33 ? -1 : 1);
+    if (held) { held = false; return; }
+    if (e.target.closest("#tagL")) return;
+    const r = story.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    go(x < r.width * 0.33 ? -1 : 1, x, y);
   });
   story.addEventListener("keydown", (e) => {
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); go(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
   });
+  // Gentle 3D tilt with a glare that follows the mouse.
+  if (!reduce && matchMedia("(pointer: fine)").matches) {
+    story.addEventListener("pointermove", (e) => {
+      const r = story.getBoundingClientRect(), dx = (e.clientX - r.left) / r.width - 0.5, dy = (e.clientY - r.top) / r.height - 0.5;
+      story.style.transform = `perspective(1000px) rotateX(${(-dy * 7).toFixed(2)}deg) rotateY(${(dx * 9).toFixed(2)}deg)`;
+      story.style.setProperty("--gx", ((dx + 0.5) * 100).toFixed(1) + "%"); story.style.setProperty("--gy", ((dy + 0.5) * 100).toFixed(1) + "%"); story.style.setProperty("--glare", "1");
+    });
+    story.addEventListener("pointerleave", () => { story.style.transform = ""; story.style.setProperty("--glare", "0"); });
+  }
   $("prev").onclick = () => go(-1);
   $("next").onclick = () => go(1);
   $("pause").onclick = () => setPaused(!paused);
@@ -560,6 +745,189 @@ h1 em { font-style: normal; color: var(--tangerine); }
   ["dragenter", "dragover"].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
   ["dragleave", "drop"].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); if (t === "drop" || e.target === document.documentElement) drop.classList.remove("over"); }));
   document.addEventListener("drop", (e) => { const f = e.dataTransfer?.files?.[0]; if (f) readFile(f); });
+
+  /* ---------- particles inside the story card ---------- */
+  const fxIn = $("fxin"), fx = fxIn.getContext("2d");
+  const PAL = ["#2f3fe3", "#ff7a1a", "#bff0d4", "#f2e94e", "#ff5f7e", "#f3efe6", "#3b1540"];
+  const rand = (a, b) => a + Math.random() * (b - a);
+  let parts = [], motif = "", motifT0 = 0, ink = "#fff";
+  function sizeCanvas(cv, w, h) {
+    const d = Math.min(2, window.devicePixelRatio || 1), W = Math.round(w * d), H = Math.round(h * d);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    return d;
+  }
+  function burst(x0, y0, n, d, list) {
+    for (let i = 0; i < n; i++) {
+      const ang = rand(-Math.PI * 0.85, -Math.PI * 0.15), sp = rand(5, 15) * d;
+      list.push({ k: "c", x: x0, y: y0, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, w: rand(5, 10) * d, h: rand(8, 15) * d, rot: rand(0, 6), vr: rand(-0.25, 0.25), c: PAL[i % PAL.length], g: 0.3 * d });
+    }
+  }
+  function startMotif(m, color) {
+    motif = m; ink = color; parts = []; motifT0 = performance.now();
+    if (reduce) return;
+    const d = sizeCanvas(fxIn, story.clientWidth, story.clientHeight), W = fxIn.width, H = fxIn.height;
+    if (m === "bubbles") for (let i = 0; i < 14; i++) parts.push({ x: rand(0, W), y: rand(0, H), r: rand(6, 46) * d, v: rand(0.15, 0.5) * d, ph: rand(0, 6.28), a: rand(0.07, 0.16) });
+    if (m === "letters") for (let i = 0; i < 22; i++) parts.push({ x: rand(0, W), y: rand(-H, H), s: rand(14, 44) * d, v: rand(0.3, 0.9) * d, rot: rand(-0.5, 0.5), vr: rand(-0.004, 0.004), ch: "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ"[Math.floor(rand(0, 27))], a: rand(0.07, 0.15) });
+    if (m === "stars") for (let i = 0; i < 46; i++) parts.push({ x: rand(0, W), y: rand(0, H), r: rand(0.6, 2.2) * d, ph: rand(0, 6.28), sp: rand(0.6, 2) });
+    if (m === "squares") for (let i = 0; i < 12; i++) parts.push({ x: rand(0, W), y: rand(0, H), s: rand(10, 34) * d, vx: rand(-0.3, 0.3) * d, vy: rand(-0.3, 0.3) * d, rot: rand(0, 6), vr: rand(-0.01, 0.01), a: rand(0.08, 0.16) });
+    if (m === "confetti") burst(W / 2, H * 0.98, 150, d, parts);
+  }
+  function drawConfetti(ctx, p) {
+    p.vy += p.g; p.vx *= 0.985; p.vy *= 0.99; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+    ctx.globalAlpha = 1; ctx.fillStyle = p.c;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.rot * 1.7)) + 1); ctx.restore();
+  }
+  function drawMotif(now) {
+    if (reduce || !motif) return;
+    const d = sizeCanvas(fxIn, story.clientWidth, story.clientHeight), W = fxIn.width, H = fxIn.height, t = Math.max(0, (now - motifT0) / 1000);
+    fx.clearRect(0, 0, W, H); fx.fillStyle = ink; fx.strokeStyle = ink;
+    if (motif === "rings") for (let k = 0; k < 4; k++) {
+      const p = (t * 0.3 + k / 4) % 1; fx.globalAlpha = (1 - p) * 0.22; fx.lineWidth = 2 * d;
+      fx.beginPath(); fx.arc(W * 0.82, H * 0.8, p * W * 0.95, 0, 6.283); fx.stroke();
+    }
+    if (motif === "rays") {
+      fx.save(); fx.translate(W * 0.92, H * 0.1); fx.rotate(t * 0.12); fx.globalAlpha = 0.09;
+      for (let k = 0; k < 14; k++) { fx.rotate(6.283 / 14); fx.beginPath(); fx.moveTo(0, 0); fx.lineTo(W * 1.5, -W * 0.07); fx.lineTo(W * 1.5, W * 0.07); fx.closePath(); fx.fill(); }
+      fx.restore();
+    }
+    if (motif === "stars") { // a shooting star every few seconds
+      const st = t % 4.5;
+      if (st < 0.8) {
+        const x = W * (0.15 + st * 0.9), y = H * (0.08 + st * 0.25), g = fx.createLinearGradient(x, y, x - 90 * d, y - 30 * d);
+        g.addColorStop(0, ink); g.addColorStop(1, "transparent");
+        fx.globalAlpha = 0.8 * (1 - st / 0.8); fx.strokeStyle = g; fx.lineWidth = 2 * d;
+        fx.beginPath(); fx.moveTo(x, y); fx.lineTo(x - 90 * d, y - 30 * d); fx.stroke(); fx.strokeStyle = ink;
+      }
+    }
+    for (const p of parts) {
+      if (p.k === "c") { if (p.y < H + 40 * d) drawConfetti(fx, p); continue; }
+      if (motif === "bubbles") {
+        p.y -= p.v; p.x += Math.sin(t + p.ph) * 0.3 * d; if (p.y < -p.r) { p.y = H + p.r; p.x = rand(0, W); }
+        fx.globalAlpha = p.a; fx.beginPath(); fx.arc(p.x, p.y, p.r, 0, 6.283); fx.fill();
+      } else if (motif === "letters") {
+        p.y += p.v; p.rot += p.vr; if (p.y > H + p.s) { p.y = -p.s; p.x = rand(0, W); }
+        fx.globalAlpha = p.a; fx.font = `900 ${p.s}px Unbounded, sans-serif`;
+        fx.save(); fx.translate(p.x, p.y); fx.rotate(p.rot); fx.fillText(p.ch, 0, 0); fx.restore();
+      } else if (motif === "stars") {
+        fx.globalAlpha = 0.2 + 0.6 * (0.5 + 0.5 * Math.sin(t * p.sp * 2 + p.ph)); fx.beginPath(); fx.arc(p.x, p.y, p.r, 0, 6.283); fx.fill();
+      } else if (motif === "squares") {
+        p.x = (p.x + p.vx + W) % W; p.y = (p.y + p.vy + H) % H; p.rot += p.vr;
+        fx.globalAlpha = p.a; fx.save(); fx.translate(p.x, p.y); fx.rotate(p.rot); fx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); fx.restore();
+      }
+    }
+    if (parts.length > 60 && parts[0].k === "c" && t > 6) parts = parts.filter((p) => p.y < H + 40 * d);
+    fx.globalAlpha = 1;
+  }
+
+  /* ---------- page layer: seasonal weather + confetti rain ---------- */
+  const pfx = $("fx"), pc = pfx.getContext("2d");
+  let pparts = [], season = "";
+  const today = new Date();
+  if (today.getMonth() === 9 && today.getDate() === 31) season = "halloween";
+  else if (today.getMonth() === 11 || (today.getMonth() === 0 && today.getDate() <= 10)) season = "snow";
+  function seasonInit() {
+    if (reduce || !season) return;
+    const d = sizeCanvas(pfx, innerWidth, innerHeight), W = pfx.width, H = pfx.height;
+    const n = season === "snow" ? 70 : 12;
+    for (let i = 0; i < n; i++) pparts.push({ k: season, x: rand(0, W), y: rand(-H, H), r: rand(1, 3.2) * d, v: rand(0.4, 1.3) * d, ph: rand(0, 6.28), s: rand(16, 30) * d, ch: ["🎃", "🦇", "👻"][i % 3] });
+  }
+  function rain() {
+    if (reduce) return;
+    const d = sizeCanvas(pfx, innerWidth, innerHeight), W = pfx.width, H = pfx.height;
+    for (let i = 0; i < 200; i++) pparts.push({ k: "c", x: rand(0, W), y: rand(-H * 0.6, -10), vx: rand(-1, 1) * d, vy: rand(1, 4) * d, w: rand(6, 11) * d, h: rand(9, 16) * d, rot: rand(0, 6), vr: rand(-0.2, 0.2), c: PAL[i % PAL.length], g: 0.06 * d });
+  }
+  let pageDirty = false;
+  function drawPage() {
+    if (reduce || (!pparts.length && !pageDirty)) return;
+    sizeCanvas(pfx, innerWidth, innerHeight);
+    const W = pfx.width, H = pfx.height, t = performance.now() / 1000;
+    pc.clearRect(0, 0, W, H); pageDirty = pparts.length > 0;
+    for (const p of pparts) {
+      if (p.k === "c") { drawConfetti(pc, p); continue; }
+      p.y += p.v; p.x += Math.sin(t + p.ph) * 0.5; if (p.y > H + 30) { p.y = -30; p.x = rand(0, W); }
+      if (p.k === "snow") { pc.globalAlpha = 0.55; pc.fillStyle = "#f3efe6"; pc.beginPath(); pc.arc(p.x, p.y, p.r, 0, 6.283); pc.fill(); }
+      else { pc.globalAlpha = 0.35; pc.font = `${p.s}px serif`; pc.fillText(p.ch, p.x, p.y); }
+    }
+    pc.globalAlpha = 1;
+    pparts = pparts.filter((p) => p.k !== "c" || p.y < H + 40);
+  }
+
+  /* ---------- easter eggs ---------- */
+  const EGGS = ["dot", "tickle", "retro", "hello", "night", "secret"];
+  let found = new Set();
+  try { found = new Set(JSON.parse(localStorage.getItem("cw-eggs") || "[]").filter((k) => EGGS.includes(k))); } catch {}
+  let toastEl = null, toastT = 0;
+  function toast(msg, badge) {
+    if (toastEl) toastEl.remove();
+    clearTimeout(toastT);
+    const el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status");
+    el.textContent = msg;
+    if (badge) { const b = document.createElement("small"); b.textContent = badge; el.prepend(b); }
+    document.body.append(el); toastEl = el;
+    toastT = setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 400); }, 3400);
+  }
+  function egg(key, msg) {
+    const isNew = !found.has(key);
+    found.add(key);
+    try { localStorage.setItem("cw-eggs", JSON.stringify([...found])); } catch {}
+    toast(msg, isNew ? `🥚 ${found.size} из ${EGGS.length}` : "");
+    renderEggs();
+    if (isNew && found.size === EGGS.length) setTimeout(() => { rain(); toast("Все 6 пасхалок найдены! 🏆"); }, 3600);
+  }
+  function renderEggs() {
+    $("eggs-count").textContent = `Пасхалок найдено: ${found.size} из ${EGGS.length}`;
+    $("eggs-dots").textContent = EGGS.map((k) => (found.has(k) ? "●" : "○")).join("");
+  }
+
+  // 1. The orange dot: five quick taps → confetti rain.
+  let dotN = 0, dotT = 0;
+  $("dot").addEventListener("click", () => {
+    const b = $("dot"); b.classList.remove("bump"); void b.offsetWidth; b.classList.add("bump");
+    dotN = performance.now() - dotT < 1500 ? dotN + 1 : 1; dotT = performance.now();
+    if (dotN >= 5) { dotN = 0; rain(); egg("dot", "Конфетти для тебя 🎉"); }
+  });
+  // 2. Tickle the word "Claude" ten times.
+  const em = document.querySelector("h1 em");
+  em.innerHTML = [...em.textContent].map((c, i) => `<span class="lt" style="--i:${i}">${c === " " || c === " " ? "&nbsp;" : esc(c)}</span>`).join("");
+  let tickles = 0;
+  em.addEventListener("click", () => {
+    em.classList.remove("jump"); void em.offsetWidth; em.classList.add("jump");
+    if (++tickles === 10) egg("tickle", "Хватит щекотать Claude! 😂");
+  });
+  // 3. Retro mode: the Konami code on a keyboard, or three quick taps on the card's label.
+  const KONAMI = ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"];
+  let kpos = 0, typed = "", tagN = 0, tagT = 0, retroFont = false;
+  function toggleRetro() {
+    if (!retroFont) {
+      retroFont = true;
+      const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"; document.head.append(l);
+    }
+    const on = document.body.classList.toggle("retro");
+    if (on) egg("retro", "Ретро-режим 👾 Повтори, чтобы выключить");
+    else toast("Ретро-режим выключен");
+  }
+  $("tagL").addEventListener("click", () => {
+    tagN = performance.now() - tagT < 900 ? tagN + 1 : 1; tagT = performance.now();
+    if (tagN >= 3) { tagN = 0; toggleRetro(); }
+  });
+  // 4. Type "claude" (or «клод») anywhere → the card does a flip.
+  function helloClaude() {
+    if (!reduce && story.animate) story.animate([{ transform: "perspective(1000px) rotateY(0)" }, { transform: "perspective(1000px) rotateY(360deg)" }], { duration: 1100, easing: "cubic-bezier(.5,0,.2,1)" });
+    egg("hello", "Claude передаёт привет 👋");
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.target.closest && e.target.closest("input, textarea")) return;
+    const k = e.key.toLowerCase(), kk = k === "и" ? "b" : k === "ф" ? "a" : k;
+    kpos = kk === KONAMI[kpos] ? kpos + 1 : kk === KONAMI[0] ? 1 : 0;
+    if (kpos === KONAMI.length) { kpos = 0; toggleRetro(); }
+    if (k.length === 1) typed = (typed + k).slice(-8);
+    if (/claude$|клод$/.test(typed)) { typed = ""; helloClaude(); }
+  });
+  // 5. Night visit between midnight and 5 am.
+  if (today.getHours() < 5) setTimeout(() => egg("night", "Не спится? Ночные совы — лучшие пользователи 🦉"), 2500);
+  // 6. The secret card: shown only when the stats earn a badge (see buildSlides).
+  console.log("%cПривет, разработчик 👋", "font:700 16px sans-serif;color:#ff7a1a", "\nНа странице спрятано 6 пасхалок. Подсказка: попробуй код из 80-х.");
+  renderEggs(); seasonInit();
 
   load(computeStats(sampleConvs()), true);
 })();
