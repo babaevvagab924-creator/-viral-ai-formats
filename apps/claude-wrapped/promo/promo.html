@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Компромат — промо-ролик</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Onest:wght@500;700&family=JetBrains+Mono:wght@600&display=swap">
+<style>html,body{margin:0;background:#000}canvas{display:block;width:360px;height:640px}</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+/* Promo for «Компромат»: 21 s, 1080x1920. render(t) draws frame at time t (seconds) — deterministic, so frames can be exported one by one. */
+const W = 1080, H = 1920, DUR = 21;
+const C = { ink: "#12101a", paper: "#f3efe6", cobalt: "#2f3fe3", orange: "#ff7a1a", mint: "#bff0d4", plum: "#3b1540", lemon: "#f2e94e", rose: "#ff5f7e" };
+const PAL = [C.cobalt, C.orange, C.mint, C.lemon, C.rose, C.paper];
+const D = '"Unbounded", sans-serif', B = '"Onest", sans-serif', M = '"JetBrains Mono", monospace';
+const HANDLE = "@leonario23";
+const cv = document.getElementById("c"), x = cv.getContext("2d");
+
+const clamp = (v) => Math.max(0, Math.min(1, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const oCubic = (p) => 1 - Math.pow(1 - p, 3);
+const oExpo = (p) => (p >= 1 ? 1 : 1 - Math.pow(2, -10 * p));
+const oBack = (p) => { const c = 1.7; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let r = Math.imul(seed ^ (seed >>> 15), 1 | seed); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (n) => Math.round(n).toLocaleString("ru-RU");
+
+function font(size, weight, fam) { x.font = `${weight} ${size}px ${fam}`; }
+function fit(str, size, weight, fam, maxW) { font(size, weight, fam); while (x.measureText(str).width > maxW && size > 20) { size -= 4; font(size, weight, fam); } return size; }
+function txt(str, px, py, o = {}) {
+  const size = fit(str, o.size || 80, o.w || 900, o.f || D, o.maxW || W - 140);
+  x.save(); x.globalAlpha *= o.a == null ? 1 : o.a; x.fillStyle = o.c || C.paper; x.textAlign = o.align || "left"; x.textBaseline = "alphabetic";
+  if (o.ls) x.letterSpacing = o.ls + "px";
+  if (o.s != null && o.s !== 1) { x.translate(px, py); x.scale(o.s, o.s); x.translate(-px, -py); }
+  if (o.rot) { x.translate(px, py); x.rotate(o.rot); x.translate(-px, -py); }
+  x.fillText(str, px, py); x.restore(); return size;
+}
+// a line that slams in: big → normal size, fading in
+function slam(str, px, py, t, at, o = {}) {
+  const p = prog(t, at, at + 0.22); if (p <= 0) return;
+  txt(str, px, py, { ...o, s: 1 + (1 - oCubic(p)) * (o.from || 0.6), a: oCubic(p) });
+}
+// a line that rises from below, clipped
+function rise(str, px, py, t, at, o = {}) {
+  const p = oCubic(prog(t, at, at + 0.45)); if (p <= 0) return;
+  const size = o.size || 80;
+  x.save(); x.beginPath(); x.rect(0, py - size * 1.05, W, size * 1.35); x.clip();
+  txt(str, px, py + (1 - p) * size * 1.2, o); x.restore();
+}
+
+/* ---------- screen shake from impacts ---------- */
+const IMPACTS = [3.05, 4.9, 17.62];
+function shake(t) {
+  let dx = 0, dy = 0;
+  for (const i of IMPACTS) { const d = t - i; if (d >= 0 && d < 0.5) { const a = 26 * Math.exp(-d * 9); dx += Math.sin(d * 90) * a; dy += Math.cos(d * 70) * a * 0.7; } }
+  return [dx, dy];
+}
+
+/* ---------- confetti (analytic, so any frame can be drawn alone) ---------- */
+function confettiBurst(t, at, seed, n, ox, oy) {
+  const r = rng(seed), tau = t - at; if (tau < 0) return;
+  for (let i = 0; i < n; i++) {
+    const ang = -Math.PI / 2 + (r() - 0.5) * 1.9, sp = 1300 + r() * 1500, w = 14 + r() * 16, h = 22 + r() * 22, spin = (r() - 0.5) * 16, col = PAL[i % PAL.length];
+    const k = 1.6, vx = Math.cos(ang) * sp, vy = Math.sin(ang) * sp;
+    const px = ox + vx * (1 - Math.exp(-k * tau)) / k, py = oy + vy * (1 - Math.exp(-k * tau)) / k + 900 * tau * tau * 0.5;
+    if (py > H + 60) continue;
+    x.save(); x.translate(px, py); x.rotate(spin * tau + i); x.fillStyle = col; x.fillRect(-w / 2, -h / 2, w, h * Math.abs(Math.cos(spin * tau * 0.7 + i)) + 2); x.restore();
+  }
+}
+function confettiRain(t, at, seed, n) {
+  const r = rng(seed), tau = t - at; if (tau < 0) return;
+  for (let i = 0; i < n; i++) {
+    const x0 = r() * W, delay = r() * 1.5, v = 500 + r() * 700, w = 14 + r() * 14, h = 22 + r() * 18, spin = (r() - 0.5) * 10, sway = 30 + r() * 50;
+    const tt = tau - delay; if (tt < 0) continue;
+    const py = -60 + v * tt, px = x0 + Math.sin(tt * 3 + i) * sway; if (py > H + 60) continue;
+    x.save(); x.translate(px, py); x.rotate(spin * tt + i); x.fillStyle = PAL[i % PAL.length]; x.fillRect(-w / 2, -h / 2, w, h * Math.abs(Math.cos(spin * tt + i)) + 2); x.restore();
+  }
+}
+
+/* ---------- backdrops ---------- */
+function fallingLetters(t, color) {
+  const r = rng(7), L = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ";
+  x.save(); x.fillStyle = color;
+  for (let i = 0; i < 26; i++) {
+    const s = 40 + r() * 110, v = 90 + r() * 160, x0 = r() * W, y0 = r() * (H + 300), rot = (r() - 0.5) * 0.8, ch = L[Math.floor(r() * L.length)], a = 0.07 + r() * 0.09;
+    x.globalAlpha = a; font(s, 900, D);
+    const y = ((y0 + v * t) % (H + 300)) - 150;
+    x.save(); x.translate(x0, y); x.rotate(rot + t * 0.1 * (i % 2 ? 1 : -1)); x.fillText(ch, 0, 0); x.restore();
+  }
+  x.restore();
+}
+function stars(t, color) {
+  const r = rng(3); x.save(); x.fillStyle = color;
+  for (let i = 0; i < 70; i++) { const px = r() * W, py = r() * H, rad = 1.5 + r() * 4, ph = r() * 6.28, sp = 1 + r() * 2.5; x.globalAlpha = 0.15 + 0.6 * (0.5 + 0.5 * Math.sin(t * sp * 2 + ph)); x.beginPath(); x.arc(px, py, rad, 0, 6.283); x.fill(); }
+  const st = t % 2.2; if (st < 0.6) { const p = st / 0.6, sx = W * (0.1 + p * 0.9), sy = H * (0.08 + p * 0.18), g = x.createLinearGradient(sx, sy, sx - 260, sy - 80); g.addColorStop(0, color); g.addColorStop(1, "transparent"); x.globalAlpha = 1 - p; x.strokeStyle = g; x.lineWidth = 5; x.beginPath(); x.moveTo(sx, sy); x.lineTo(sx - 260, sy - 80); x.stroke(); }
+  x.restore();
+}
+function rings(t, color, cx, cy) {
+  x.save(); x.strokeStyle = color; x.lineWidth = 6;
+  for (let k = 0; k < 4; k++) { const p = (t * 0.45 + k / 4) % 1; x.globalAlpha = (1 - p) * 0.25; x.beginPath(); x.arc(cx, cy, p * 1300, 0, 6.283); x.stroke(); }
+  x.restore();
+}
+
+/* ---------- story chrome for the card section ---------- */
+const CARDS_START = 6.4, CARD = 1.6, NCARDS = 5;
+function chrome(t, fg) {
+  const g = (t - CARDS_START) / CARD, bw = (W - 120 - 8 * (NCARDS - 1)) / NCARDS;
+  for (let i = 0; i < NCARDS; i++) {
+    x.save(); x.fillStyle = fg; x.globalAlpha = 0.3; x.fillRect(60 + i * (bw + 8), 70, bw, 8);
+    x.globalAlpha = 1; x.fillRect(60 + i * (bw + 8), 70, bw * clamp(g - i), 8); x.restore();
+  }
+  txt(`КОМПРОМАТ · ${HANDLE.toUpperCase()}`, 60, 140, { size: 30, w: 600, f: M, c: fg, ls: 4, a: 0.9 });
+}
+function kicker(str, t, fg, at = 0.05) { rise(str, 70, 330, t, at, { size: 40, w: 600, f: M, c: fg, ls: 6 }); }
+
+/* ---------- slides ---------- */
+const SLIDES = [
+  { start: 0, dur: 2.2, bg: C.ink, wipe: false, draw(t) {
+      slam("Spotify знает,", W / 2, 860, t, 0.08, { size: 104, align: "center" });
+      slam("что ты слушаешь.", W / 2, 1000, t, 0.62, { size: 104, align: "center" });
+      rise("а теперь честно", W / 2, 1180, t, 1.3, { size: 44, w: 600, f: M, c: "#a39db3", align: "center" });
+  } },
+  { start: 2.2, dur: 2.2, bg: C.ink, wipe: false, draw(t) {
+      slam("А ИИ знает", W / 2, 640, t, 0.02, { size: 110, align: "center" });
+      slam("о тебе", W / 2, 790, t, 0.35, { size: 110, align: "center" });
+      const p = prog(t, 0.85, 1.07); if (p > 0) {
+        const s = 1 + (1 - oCubic(p)) * 1.4, gl = Math.max(0, 1 - (t - 1.07) / 0.5);
+        if (gl > 0) { txt("ВСЁ.", W / 2 - 22 * gl, 1180, { size: 330, align: "center", c: C.rose, a: 0.8 * gl, s }); txt("ВСЁ.", W / 2 + 22 * gl, 1180, { size: 330, align: "center", c: C.cobalt, a: 0.8 * gl, s }); }
+        txt("ВСЁ.", W / 2, 1180, { size: 330, align: "center", c: C.orange, s, a: oCubic(p) });
+      }
+  } },
+  { start: 4.4, dur: 2.0, bg: C.orange, ox: W / 2, oy: H / 2, draw(t) {
+      rise("ДЕЛО № 2026", 70, 300, t, 0.6, { size: 40, w: 600, f: M, c: C.ink, ls: 6 });
+      const p = prog(t, 0.28, 0.5);
+      if (p > 0) {
+        const s = 1 + (1 - oCubic(p)) * 1.8;
+        x.save(); x.translate(W / 2, 960); x.rotate(-0.1); x.scale(s, s); x.globalAlpha = oCubic(p);
+        const size = fit("КОМПРОМАТ", 150, 900, D, W - 240); const tw = x.measureText("КОМПРОМАТ").width;
+        x.strokeStyle = C.ink; x.lineWidth = 14; x.beginPath(); x.roundRect(-tw / 2 - 40, -size * 0.95, tw + 80, size * 1.35, 24); x.stroke();
+        x.fillStyle = C.ink; x.textAlign = "center"; x.fillText("КОМПРОМАТ", 0, size * 0.18); x.restore();
+        const r = rng(11), d = t - 0.5;   // dust from the impact
+        if (d > 0 && d < 0.9) for (let i = 0; i < 40; i++) { const a = r() * 6.283, sp = 300 + r() * 600, sz = 6 + r() * 10; x.save(); x.globalAlpha = 1 - d / 0.9; x.fillStyle = C.ink; x.fillRect(W / 2 + Math.cos(a) * (380 + sp * d), 960 + Math.sin(a) * (130 + sp * d * 0.6), sz, sz); x.restore(); }
+      }
+      rise("на твой год", W / 2, 1280, t, 0.85, { size: 70, align: "center", c: C.ink });
+      rise("с Claude", W / 2, 1370, t, 1.0, { size: 70, align: "center", c: C.ink });
+  } },
+  { start: 6.4, dur: CARD, bg: C.cobalt, fg: C.paper, ox: W * 0.85, oy: H * 0.75, draw(t) {
+      fallingLetters(t + 6.4, C.paper); chrome(t + 6.4, C.paper); kicker("СЛОВА", t, C.paper);
+      const p = oExpo(prog(t, 0.1, 1.0)); txt(fmt(441367 * p), 70, 820, { size: 210, c: C.paper });
+      rise("слов написал", 70, 960, t, 0.25, { size: 76, c: C.paper });
+      rise("для тебя Claude", 70, 1060, t, 0.35, { size: 76, c: C.paper });
+      rise("≈ 5,5 романа", 70, 1460, t, 0.6, { size: 46, w: 600, f: M, c: C.lemon });
+  } },
+  { start: 8.0, dur: CARD, bg: C.plum, fg: C.lemon, ox: W * 0.15, oy: H * 0.3, draw(t) {
+      stars(t, C.lemon); chrome(t + 8.0, C.lemon); kicker("ТВОЙ РИТМ", t, C.lemon);
+      rise("Вечерний", 70, 560, t, 0.08, { size: 120, c: C.lemon }); rise("творец", 70, 700, t, 0.18, { size: 120, c: C.lemon });
+      const hrs = [1, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 5, 4, 3, 6, 4, 5, 7, 6, 8, 14, 15, 20, 13], bw = (W - 140 - 23 * 8) / 24;
+      for (let i = 0; i < 24; i++) {
+        const g = oBack(prog(t, 0.3 + i * 0.018, 0.65 + i * 0.018)), h = 30 + (hrs[i] / 20) * 520 * g;
+        x.save(); x.fillStyle = C.lemon; x.globalAlpha = i === 22 ? 1 : 0.4; x.fillRect(70 + i * (bw + 8), 1560 - h, bw, h); x.restore();
+      }
+      const lp = prog(t, 0.9, 1.15); if (lp > 0) txt("22:00", 70 + 22 * (bw + 8) + bw / 2, 1560 - 550 - 40, { size: 56, c: C.lemon, align: "center", a: lp, s: 1 + (1 - oBack(lp)) * 0.5 });
+  } },
+  { start: 9.6, dur: CARD, bg: C.lemon, fg: C.ink, ox: W * 0.85, oy: H * 0.5, draw(t) {
+      rings(t, C.ink, W * 0.8, H * 0.82); chrome(t + 9.6, C.ink); kicker("СЕРИЯ", t, C.ink);
+      const p = oExpo(prog(t, 0.1, 0.8)); txt(fmt(47 * p), 70, 900, { size: 420, c: C.ink });
+      rise("дней подряд", 70, 1050, t, 0.3, { size: 92, c: C.ink }); rise("без пропусков", 70, 1160, t, 0.4, { size: 92, c: C.ink });
+      for (let i = 0; i < 7; i++) { const g = oBack(prog(t, 0.55 + i * 0.07, 0.85 + i * 0.07)), s = 110; if (g <= 0) continue; x.save(); x.translate(70 + s / 2 + i * (s + 20), 1360 + s / 2); x.rotate((1 - g) * -0.4); x.scale(g, g); x.fillStyle = C.ink; x.globalAlpha = 0.35 + i * 0.1; x.beginPath(); x.roundRect(-s / 2, -s / 2, s, s, 18); x.fill(); x.restore(); }
+  } },
+  { start: 11.2, dur: CARD, bg: C.ink, fg: C.lemon, ox: W * 0.15, oy: H * 0.7, draw(t) {
+      stars(t + 3, C.lemon); chrome(t + 11.2, C.lemon); kicker("СЕКРЕТНАЯ КАРТОЧКА", t, C.lemon);
+      rise("Тайные", 70, 560, t, 0.08, { size: 120, c: C.lemon }); rise("достижения", 70, 700, t, 0.18, { size: 120, c: C.lemon });
+      const BADGES = [["Новогодняя ночь", "Писать Claude под бой курантов"], ["Марафонец", "100+ сообщений в одном чате"], ["Ночной клуб", "Пиковый час — 3 часа ночи"]];
+      BADGES.forEach(([a, b], i) => {
+        const p = prog(t, 0.35 + i * 0.25, 0.55 + i * 0.25); if (p <= 0) return;
+        const s = 1 + (1 - oCubic(p)) * 1.2, rot = [-0.04, 0.03, -0.02][i];
+        x.save(); x.translate(W / 2, 950 + i * 210); x.rotate(rot - (1 - p) * 0.2); x.scale(s, s); x.globalAlpha = oCubic(p);
+        x.strokeStyle = C.lemon; x.lineWidth = 6; x.beginPath(); x.roundRect(-470, -85, 940, 170, 28); x.stroke();
+        x.fillStyle = C.lemon; font(64, 900, D); x.fillText("★", -430, 22);
+        fit(a, 52, 700, D, 720); x.fillText(a, -330, -8); fit(b, 34, 500, B, 720); x.globalAlpha *= 0.85; x.fillText(b, -330, 48); x.restore();
+      });
+  } },
+  { start: 12.8, dur: CARD, bg: C.mint, fg: C.ink, ox: W * 0.85, oy: H * 0.25, draw(t) {
+      chrome(t + 12.8, C.ink); kicker("ТВОЙ ТИП", t, C.ink);
+      const word = "Креатор", size = fit(word, 230, 900, D, W - 140); let cx = 70;
+      [...word].forEach((ch, i) => { font(size, 900, D); const w = x.measureText(ch).width, p = prog(t, 0.1 + i * 0.06, 0.45 + i * 0.06); if (p > 0) { x.save(); x.translate(cx + w / 2, 900); x.rotate((1 - oBack(p)) * -0.5); x.translate(0, -(1 - oBack(p)) * 500); x.fillStyle = C.ink; x.globalAlpha = clamp(p * 2); x.textAlign = "center"; x.fillText(ch, 0, 0); x.restore(); } cx += w; });
+      rise("ИИ — твоя", 70, 1080, t, 0.6, { size: 70, c: C.ink }); rise("продакшн-студия", 70, 1170, t, 0.7, { size: 70, c: C.ink });
+      confettiBurst(t, 0.55, 5, 160, W / 2, H + 40);
+  } },
+  { start: 14.4, dur: 2.6, bg: C.ink, ox: W / 2, oy: H / 2, draw(t) {
+      slam("А ты какой?", W / 2, 640, t, 0.08, { size: 130, align: "center" });
+      const names = ["Инженер", "Креатор", "Исследователь", "Стратег", "Собеседник"], cols = [C.paper, C.orange, C.mint, C.lemon, C.rose];
+      if (t > 0.75) { const k = Math.floor((t - 0.75) / 0.16) % names.length, s = 1 + 0.08 * (1 - ((t - 0.75) % 0.16) / 0.16); txt(names[k], W / 2, 1060, { size: 150, align: "center", c: cols[k], s }); }
+      rise("Узнай по своим чатам", W / 2, 1380, t, 1.2, { size: 48, w: 600, f: M, c: "#a39db3", align: "center" });
+  } },
+  { start: 17.0, dur: 4.0, bg: C.orange, ox: W / 2, oy: H * 0.9, draw(t) {
+      confettiRain(t, 0.9, 9, 140);
+      slam("Собери", 70, 560, t, 0.1, { size: 170, c: C.ink, from: 0.8 });
+      slam("свой", 70, 730, t, 0.35, { size: 170, c: C.ink, from: 0.8 });
+      slam("компромат", 70, 900, t, 0.6, { size: 170, c: C.ink, from: 0.8 });
+      const p = prog(t, 1.15, 1.45);
+      if (p > 0) {
+        const s = oBack(p) * (1 + 0.04 * Math.sin((t - 1.45) * 8) * (t > 1.45 ? 1 : 0));
+        x.save(); x.translate(W / 2, 1150); x.scale(s, s); x.fillStyle = C.ink; x.beginPath(); x.roundRect(-430, -85, 860, 170, 85); x.fill();
+        x.fillStyle = C.paper; font(58, 700, D); x.textAlign = "center"; x.fillText("ссылка в профиле ↑", 0, 20); x.restore();
+      }
+      rise(HANDLE, W / 2, 1360, t, 1.55, { size: 80, c: C.ink, align: "center" });
+      rise("бесплатно · всё в браузере · 6 пасхалок", W / 2, 1480, t, 1.9, { size: 36, w: 600, f: M, c: C.ink, align: "center" });
+  } },
+];
+
+function drawSlide(i, t) {
+  const sl = SLIDES[i], lt = t - sl.start;
+  x.fillStyle = sl.bg; x.fillRect(-60, -60, W + 120, H + 120);
+  x.save(); sl.draw(lt); x.restore();
+}
+function render(t) {
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  let i = SLIDES.findIndex((s) => t >= s.start && t < s.start + s.dur); if (i < 0) i = SLIDES.length - 1;
+  const [dx, dy] = shake(t); x.translate(dx, dy);
+  const sl = SLIDES[i], lt = t - sl.start, WIPE = 0.5;
+  if (i > 0 && sl.wipe !== false && lt < WIPE) {
+    drawSlide(i - 1, t);
+    const R = oCubic(lt / WIPE) * 2300;
+    x.save(); x.beginPath(); x.arc(sl.ox, sl.oy, R, 0, 6.283); x.clip(); drawSlide(i, t); x.restore();
+  } else drawSlide(i, t);
+}
+window.DUR = DUR; window.render = render;
+window.ready = Promise.all([["900", D], ["700", D], ["700", B], ["500", B], ["600", M]].map(([w, f]) => document.fonts.load(`${w} 80px ${f}`, "Компромат ВСЁ 0123"))).then(() => document.fonts.ready);
+// preview loop when opened in a browser
+if (!navigator.webdriver) { let t0 = performance.now(); (function loop(now) { render(((now - t0) / 1000) % DUR); requestAnimationFrame(loop); })(t0); }
+</script>
+</body>
+</html>
