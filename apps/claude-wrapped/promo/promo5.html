@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Компромат — промо v5 «Допрос»</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Onest:wght@500;700&family=JetBrains+Mono:wght@600&family=PT+Mono&display=swap">
+<style>html,body{margin:0;background:#000}#out{display:block;width:360px;height:640px}#c{display:none}</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script>window.SKIP_SUBS = true; window.EMBEDDED = true;</script>
+<script src="promo3.js"></script>
+<script src="voice_env.js"></script>
+<script>
+/* «Компромат» v5 — noir interrogation. Three Blender (Cycles) layers rendered once — room, pixel Claude with
+   its shadow, hanging lamp — are animated and composited here; render5(t) is deterministic (60 fps export). */
+const W = 1080, H = 1920, DUR = 30;
+const out = document.getElementById("out"), x = out.getContext("2d");
+const C = { ink: "#07060a", paper: "#e6dcc6", red: "#e8322b", amber: "#ffb35c", orange: "#ff7a1a", claude: "#d77858", blue: "#7f8cff" };
+const M = '"PT Mono", "JetBrains Mono", monospace', D = '"Unbounded", sans-serif';
+const clamp = (v) => Math.max(0, Math.min(1, v)), prog = (t, a, b) => clamp((t - a) / (b - a)), lerp = (a, b, p) => a + (b - a) * p;
+const oC = (p) => 1 - Math.pow(1 - p, 3), io = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const oB = (p, k = 1.7) => 1 + (k + 1) * Math.pow(p - 1, 3) + k * Math.pow(p - 1, 2);
+function rng(s) { return () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let r = Math.imul(s ^ (s >>> 15), 1 | s); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (n) => Math.round(n).toLocaleString("ru-RU").replace(/ /g, " ");
+function env(t) { const E = window.VOICE_ENV || [], f = t * 30, i = Math.floor(f); return lerp(E[i] || 0, E[i + 1] || 0, f - i); }
+
+/* ---------- assets ---------- */
+const IMG = {}; let META = null;
+const load = (n) => new Promise((r) => { const im = new Image(); im.onload = () => { IMG[n] = im; r(); }; im.src = "noir/" + n + ".png"; });
+window.ready5 = Promise.all([load("bg"), load("char"), load("lamp"), fetch("noir/layers_meta.json").then((r) => r.json()).then((m) => (META = m)), window.ready,
+  document.fonts.load('400 40px "PT Mono"', "Дело 0123"), document.fonts.load('900 40px "Unbounded"', "КОМПРОМАТ")]).then(() => buildSmoke());
+
+/* ---------- text helpers ---------- */
+function T(str, px, py, o = {}) {
+  x.save(); x.globalAlpha *= o.a == null ? 1 : o.a; x.font = `${o.w || 400} ${o.size || 48}px ${o.f || M}`; x.textAlign = o.align || "left";
+  if (o.ls) x.letterSpacing = o.ls + "px";
+  x.translate(px, py); if (o.rot) x.rotate(o.rot); if (o.s) x.scale(o.s, o.s);
+  if (o.glow) { x.shadowColor = o.glow; x.shadowBlur = o.glowR || 30; }
+  x.fillStyle = o.c || C.paper; x.fillText(str, 0, 0); x.restore();
+}
+function typed(str, t, at, cps) { const n = Math.floor(Math.max(0, t - at) * cps); return str.slice(0, n) + (n < str.length && n > 0 && Math.floor(t * 8) % 2 ? "▌" : ""); }
+function stamp(text, cx, cy, t, at, size = 120, rot = -0.08, color = C.red) {
+  const p = prog(t, at, at + 0.16); if (p <= 0) return;
+  const s = 1 + (1 - oC(p)) * 2.2; x.save(); x.translate(cx, cy); x.rotate(rot); x.scale(s, s); x.globalAlpha = Math.min(1, p * 1.5) * 0.92;
+  x.font = `900 ${size}px ${D}`; const w = x.measureText(text).width; x.strokeStyle = color; x.lineWidth = size * 0.09;
+  x.beginPath(); x.roundRect(-w / 2 - size * 0.35, -size * 0.85, w + size * 0.7, size * 1.2, size * 0.18); x.stroke();
+  x.fillStyle = color; x.textAlign = "center"; x.fillText(text, 0, size * 0.12);
+  // worn ink: knock out random specks
+  x.globalCompositeOperation = "destination-out"; const r = rng(text.length * 31); for (let i = 0; i < 220; i++) { x.globalAlpha = 0.5 * r(); x.fillRect((r() - 0.5) * (w + size), (r() - 0.6) * size * 1.2, 3 + r() * 7, 2 + r() * 4); }
+  x.restore();
+}
+function paper(cx, cy, w, h, rot, t, at, draw) {   // a sheet that drops into the light
+  const p = prog(t, at, at + 0.35); if (p <= 0) return;
+  const e = oB(p, 1.2); x.save(); x.translate(cx, lerp(cy - 900, cy, e)); x.rotate(rot + (1 - p) * 0.6);
+  x.shadowColor = "rgba(0,0,0,.6)"; x.shadowBlur = 30; x.shadowOffsetY = 14; x.fillStyle = C.paper; x.fillRect(-w / 2, -h / 2, w, h); x.shadowColor = "transparent";
+  x.fillStyle = "rgba(120,90,60,.18)"; x.fillRect(-w / 2, -h / 2, w, 10); draw(w, h); x.restore();
+}
+function counter(v, t, at, dur) { return Math.round(v * oC(prog(t, at, at + dur))); }
+
+/* ---------- smoke + dust ---------- */
+let SMOKE = [];
+function buildSmoke() {
+  SMOKE = [0, 1, 2].map((k) => { const c = document.createElement("canvas"); c.width = 540; c.height = 960; const g = c.getContext("2d"), r = rng(9 + k);
+    for (let i = 0; i < 60; i++) { const px = r() * 540, py = r() * 960, rad = 60 + r() * 160, gr = g.createRadialGradient(px, py, 0, px, py, rad); gr.addColorStop(0, `rgba(255,${120 + k * 40},${110 + k * 30},${0.05 + r() * 0.06})`); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, 540, 960); }
+    return c; });
+}
+function smoke(t, a) {
+  x.save(); x.globalCompositeOperation = "screen";
+  SMOKE.forEach((c, k) => { x.globalAlpha = a * (0.55 + 0.25 * Math.sin(t * 0.4 + k)); const dx = Math.sin(t * 0.12 + k * 2) * 120 - 60, dy = -((t * (14 + k * 8)) % 400); x.drawImage(c, dx - 100, dy, W + 300, H + 800); });
+  x.restore();
+}
+function dust(t, bx, by, a) {
+  const r = rng(77); x.save(); x.fillStyle = "#ffd9a0";
+  for (let i = 0; i < 70; i++) { const yy = by + 60 + ((r() * 700 + t * (10 + r() * 22)) % 760), spread = (yy - by) * 0.55, xx = bx + (r() - 0.5) * 2 * spread + Math.sin(t * 0.8 + i) * 12; x.globalAlpha = a * (0.25 + 0.6 * r()) * (0.5 + 0.5 * Math.sin(t * 2 + i)); x.beginPath(); x.arc(xx, yy, 1 + r() * 2.2, 0, 6.283); x.fill(); }
+  x.restore();
+}
+
+/* ---------- camera ---------- */
+// [time, zoom, focusX, focusY]  (focus = point of the base image kept in frame centre)
+const CAM = [[0, 1.0, 540, 960], [3.5, 1.08, 540, 1000], [7.0, 1.14, 540, 1030], [11.5, 1.05, 560, 900], [14.85, 1.12, 540, 1050], [17.85, 1.12, 540, 1050], [17.9, 1.42, 540, 990], [18.95, 1.42, 540, 990], [19.5, 1.1, 540, 1040], [23.25, 1.25, 540, 1060], [25.3, 1.0, 540, 980], [29.5, 1.06, 540, 990], [30, 1.07, 540, 990]];
+const IMPACTS = [1.48, 3.5, 11.5, 17.85, 20.0, 25.3, 28.6];
+function camAt(t) {
+  let i = 0; while (i < CAM.length - 2 && t > CAM[i + 1][0]) i++; const a = CAM[i], b = CAM[i + 1], p = io(prog(t, a[0], b[0]));
+  let z = lerp(a[1], b[1], p), fx = lerp(a[2], b[2], p), fy = lerp(a[3], b[3], p);
+  fx += Math.sin(t * 0.7) * 6 + Math.sin(t * 1.9) * 2; fy += Math.cos(t * 0.6) * 5;   // handheld drift
+  for (const im of IMPACTS) { const d = t - im; if (d >= 0 && d < 0.5) { const k = 18 * Math.exp(-d * 9); fx += Math.sin(d * 90) * k; fy += Math.cos(d * 70) * k; } }
+  return { z, fx, fy };
+}
+function withCam(cam, parallax, fn) { x.save(); const z = 1 + (cam.z - 1) * parallax; x.translate(W / 2, H / 2); x.scale(z, z); x.translate(-cam.fx, -cam.fy); fn(); x.restore(); }
+
+/* ---------- character (pixel Claude) ---------- */
+function drawClaude(t) {
+  const e = env(t), feet = META.char_feet, surprised = t > 18.5 && t < 19.9;
+  const hop = surprised ? Math.max(0, Math.sin((t - 18.5) * 9)) * 60 * Math.exp(-(t - 18.5) * 1.5) : Math.abs(Math.sin(t * 9)) * 10 * e;
+  const sq = 1 + e * 0.05 * Math.sin(t * 18), sx = 1 / Math.sqrt(sq);
+  x.save(); x.translate(feet[0], feet[1]); x.scale(sx, sq); x.translate(0, -hop); x.translate(-feet[0], -feet[1]);
+  x.drawImage(IMG.char, 0, 0);
+  // eyes: blink, or grow when surprised (drawn on the body plane)
+  const es = META.eye_size, blink = !surprised && (t % 3.7) > 3.58;
+  for (const [ex, ey] of META.eyes) {
+    if (blink) { x.fillStyle = "#8a3a22"; x.fillRect(ex - es * 0.55, ey - es * 0.55, es * 1.1, es * 1.1); x.fillStyle = "#0a0607"; x.fillRect(ex - es * 0.5, ey - 4, es, 8); }
+    else if (surprised) { x.fillStyle = "#050405"; x.fillRect(ex - es * 0.7, ey - es * 0.85, es * 1.4, es * 1.5); }
+  }
+  x.restore();
+}
+
+/* ---------- scenes: overlays timed to the voice ---------- */
+function overlays(t) {
+  // 0–3.5 hook: stamp + case number
+  if (t < 3.6) {
+    stamp("КОМПРОМАТ", 540, 360, t, 1.3, 128, -0.09);
+    T(typed("ДЕЛО № 2026 · @leonario23", t, 1.8, 26), 540, 520, { size: 46, align: "center", c: C.paper, a: t > 3.2 ? 1 - prog(t, 3.2, 3.5) : 1 });
+  }
+  // 3.5–7.0 chats
+  if (t > 3.5 && t < 7.1) {
+    paper(330, 390, 420, 300, -0.07, t, 3.6, (w, h) => { T("УЛИКА", -w / 2 + 34, -h / 2 + 70, { size: 38, c: "#2a2018" }); T(String(counter(73, t, 3.7, 0.9)), -w / 2 + 30, h / 2 - 40, { size: 190, w: 900, f: D, c: C.red }); });
+    paper(740, 470, 420, 220, 0.06, t, 5.1, (w, h) => { T("СООБЩЕНИЙ", -w / 2 + 30, -h / 2 + 64, { size: 34, c: "#2a2018" }); T(fmt(counter(2585, t, 5.15, 1.0)), -w / 2 + 30, h / 2 - 36, { size: 96, w: 900, f: D, c: "#1c1612" }); });
+  }
+  // 7.0–11.5 words
+  if (t > 7.0 && t < 11.6) {
+    paper(540, 400, 900, 300, -0.03, t, 7.05, (w, h) => { T("СЛОВ НАПИСАЛ CLAUDE", -w / 2 + 40, -h / 2 + 70, { size: 38, c: "#2a2018" }); T(fmt(counter(200586, t, 7.1, 1.4)), -w / 2 + 34, h / 2 - 44, { size: 150, w: 900, f: D, c: C.red }); });
+    T(typed("≈ два с половиной романа", t, 8.6, 22), 540, 650, { size: 50, align: "center", c: C.paper, glow: C.amber, glowR: 18 });
+  }
+  // 11.5–14.85 midnight
+  if (t > 11.5 && t < 14.9) {
+    const a = prog(t, 11.5, 11.8) * (1 - prog(t, 14.6, 14.85)), cx = 810, cy = 330, R = 150;
+    x.save(); x.globalAlpha = a; x.strokeStyle = C.paper; x.lineWidth = 8; x.beginPath(); x.arc(cx, cy, R, 0, 6.283); x.stroke();
+    for (let i = 0; i < 12; i++) { const an = i / 12 * 6.283; x.lineWidth = i % 3 ? 3 : 8; x.beginPath(); x.moveTo(cx + Math.cos(an) * (R - 22), cy + Math.sin(an) * (R - 22)); x.lineTo(cx + Math.cos(an) * (R - 6), cy + Math.sin(an) * (R - 6)); x.stroke(); }
+    const hp = oC(prog(t, 11.6, 12.9)), hr = lerp(21, 24, hp), ha = hr / 12 * 6.283 - Math.PI / 2, ma = hr * 6.283 - Math.PI / 2;
+    x.lineCap = "round"; x.lineWidth = 12; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ha) * 80, cy + Math.sin(ha) * 80); x.stroke();
+    x.strokeStyle = C.red; x.lineWidth = 6; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ma) * 125, cy + Math.sin(ma) * 125); x.stroke(); x.restore();
+    if (t > 12.6) T("00:00", 300, 380, { size: 130, w: 900, f: D, c: C.red, glow: C.red, glowR: 40, s: 1 + 0.08 * Math.exp(-(t - 12.6) * 6) });
+    if (t > 13.3) T(typed("НОЧНАЯ СОВА", t, 13.3, 20), 300, 470, { size: 56, c: C.paper, ls: 6 });
+  }
+  // 14.85–20.0 the massager chat
+  if (t > 14.85 && t < 20.05) {
+    paper(540, 380, 700, 260, 0.04, t, 14.95, (w, h) => { T("САМЫЙ ДЛИННЫЙ ЧАТ", -w / 2 + 34, -h / 2 + 64, { size: 36, c: "#2a2018" }); T(String(counter(321, t, 16.0, 1.5)), -w / 2 + 30, h / 2 - 40, { size: 130, w: 900, f: D, c: C.red }); T("сообщ.", 60, h / 2 - 44, { size: 46, c: "#2a2018" }); });
+    if (t > 17.95) { // polaroid evidence after the flash
+      const p = oB(prog(t, 17.95, 18.3), 1.3); x.save(); x.translate(540, 700); x.rotate(-0.08 + (1 - p) * 0.5); x.scale(p, p);
+      x.shadowColor = "rgba(0,0,0,.7)"; x.shadowBlur = 40; x.fillStyle = "#f2efe6"; x.fillRect(-330, -230, 660, 470); x.shadowColor = "transparent";
+      x.fillStyle = "#16121a"; x.fillRect(-300, -200, 600, 330); x.restore();
+      x.save(); x.translate(540, 700); x.rotate(-0.08); x.scale(p, p);
+      T(typed("Сценарий ролика", t, 18.05, 34), -270, -80, { size: 50, c: C.paper }); T(typed("с массажёром", t, 18.5, 34), -270, -10, { size: 50, c: C.orange });
+      T("ЧАТ № 1 ПО ДЛИНЕ", -270, 205, { size: 30, c: "#2a2018" }); x.restore();
+      if (t > 18.6) T("?!", 860, 560, { size: 210, w: 900, f: D, c: C.red, rot: 0.2, s: oB(prog(t, 18.6, 18.8), 2.5), glow: C.red, glowR: 30 });
+    }
+  }
+  // 20.0–23.25 secret achievements
+  if (t > 20.0 && t < 23.3) {
+    T(typed("СЕКРЕТНЫЕ ДОСТИЖЕНИЯ", t, 20.05, 30), 540, 250, { size: 50, align: "center", c: C.amber, ls: 4, glow: C.amber, glowR: 20 });
+    [["НОЧНОЙ КЛУБ", 20.6], ["10 ДНЕЙ ПОДРЯД", 21.0], ["МАРАФОНЕЦ · 321", 21.4]].forEach(([s, at], i) => stamp(s, 540, 400 + i * 160, t, at, 70, [-0.05, 0.04, -0.03][i], i === 1 ? C.amber : C.red));
+  }
+  // 23.25–25.3 mugshot
+  if (t > 23.25 && t < 25.35) {
+    const a = prog(t, 23.25, 23.45); x.save(); x.globalAlpha = a * 0.5; x.strokeStyle = C.paper; x.lineWidth = 3;
+    for (let i = 0; i < 9; i++) { const yy = 820 + i * 50; x.beginPath(); x.moveTo(180, yy); x.lineTo(900, yy); x.stroke(); T(String(190 - i * 10), 120, yy + 12, { size: 26, c: C.paper }); } x.restore();
+    paper(540, 1430, 620, 170, 0.0, t, 23.45, (w, h) => { T("ИНЖЕНЕР", 0, 32, { size: 96, w: 900, f: D, c: "#16121a", align: "center" }); });
+    if (t > 24.6) { const names = ["КРЕАТОР", "СТРАТЕГ", "ИССЛЕДОВАТЕЛЬ", "СОБЕСЕДНИК"], k = Math.floor((t - 24.6) / 0.13) % 4; T(names[k] + "?", 540, 330, { size: 72, w: 900, f: D, c: C.amber, align: "center", glow: C.amber, glowR: 24 }); }
+  }
+  // 25.3–29.5 call to action
+  if (t > 25.3 && t < 29.55) {
+    stamp("ТВОЙ ЧЕРЁД", 540, 300, t, 25.35, 104, -0.06);
+    ["бесплатно", "2 минуты", "чаты не уходят"].forEach((s, i) => { const p = oB(prog(t, 26.4 + i * 0.45, 26.7 + i * 0.45), 2); if (p > 0) { x.save(); x.translate(540, 470 + i * 92); x.scale(p, p); x.font = `700 44px ${M}`; const w = x.measureText(s).width + 70; x.fillStyle = C.paper; x.fillRect(-w / 2, -40, w, 76); x.fillStyle = "#16121a"; x.textAlign = "center"; x.fillText(s, 0, 12); x.restore(); } });
+    const pp = prog(t, 28.6, 28.85); if (pp > 0) { x.save(); x.translate(540, 1500); const s = oB(pp, 2) * (1 + 0.035 * Math.sin((t - 28.85) * 10) * (t > 28.85 ? 1 : 0)); x.scale(s, s); x.fillStyle = C.red; x.beginPath(); x.roundRect(-430, -78, 860, 156, 78); x.fill(); x.fillStyle = "#fff"; x.font = `900 52px ${D}`; x.textAlign = "center"; x.fillText("ссылка в профиле ↑", 0, 18); x.restore(); }
+  }
+}
+
+/* ---------- frame ---------- */
+const FLASH = [17.85];
+function render5(t) {
+  x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = C.ink; x.fillRect(0, 0, W, H);
+  const cam = camAt(t), lampOn = prog(t, 0.15, 0.55) * (t < 29.5 ? 1 : 0);
+  // lamp buzz: a couple of flicker moments
+  const flick = (t > 0.15 && t < 0.55 ? (rng(Math.floor(t * 40))() > 0.45 ? 1 : 0.25) : 1) * (t > 9.6 && t < 9.75 ? 0.4 : 1) * (t > 22.9 && t < 23.02 ? 0.5 : 1);
+  const L = lampOn * flick, swing = 0.035 * Math.sin(t * 1.25) + 0.012 * Math.sin(t * 2.7);
+  withCam(cam, 1, () => {
+    x.globalAlpha = 0.18 + 0.82 * L; x.drawImage(IMG.bg, 0, 0); x.globalAlpha = 1;
+    // moving pool of lamp light (follows the swing)
+    const b = META.bulb, pv = META.lamp_pivot, len = b[1] - pv[1], bx = pv[0] + Math.sin(swing) * len, by = pv[1] + Math.cos(swing) * len;
+    x.save(); x.globalCompositeOperation = "screen"; const poolX = bx + (bx - pv[0]) * 0.6;
+    const g = x.createRadialGradient(poolX, 1250, 20, poolX, 1250, 520); g.addColorStop(0, `rgba(255,170,90,${0.22 * L})`); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(0, 600, W, 1100);
+    // visible cone of light in the smoke
+    const cg = x.createLinearGradient(0, by, 0, 1300); cg.addColorStop(0, `rgba(255,190,120,${0.28 * L})`); cg.addColorStop(1, "rgba(255,120,60,0)");
+    x.fillStyle = cg; x.beginPath(); x.moveTo(bx - 70, by + 10); x.lineTo(bx + 70, by + 10); x.lineTo(poolX + 470, 1320); x.lineTo(poolX - 470, 1320); x.closePath(); x.fill(); x.restore();
+    dust(t, bx, by, L);
+    drawClaude(t);
+    x.save(); x.translate(pv[0], pv[1]); x.rotate(swing); x.translate(-pv[0], -pv[1]); x.drawImage(IMG.lamp, 0, 0); x.restore();
+    if (L > 0) { x.save(); x.globalCompositeOperation = "screen"; const gb = x.createRadialGradient(bx, by + 10, 0, bx, by + 10, 140); gb.addColorStop(0, `rgba(255,200,140,${0.8 * L})`); gb.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = gb; x.fillRect(bx - 160, by - 150, 320, 320); x.restore(); }
+  });
+  smoke(t, 0.55 * (0.4 + 0.6 * lampOn));
+  // midnight: cold moonlight tint; secrets: tighter darkness
+  const night = prog(t, 11.5, 11.9) * (1 - prog(t, 14.6, 14.9)); if (night > 0) { x.save(); x.globalCompositeOperation = "multiply"; x.globalAlpha = night * 0.55; x.fillStyle = "#4a56c8"; x.fillRect(0, 0, W, H); x.restore(); }
+  const secret = prog(t, 20.0, 20.3) * (1 - prog(t, 23.0, 23.25)); if (secret > 0) { const v = x.createRadialGradient(540, 700, 120, 540, 700, 900); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, `rgba(0,0,0,${0.75 * secret})`); x.fillStyle = v; x.fillRect(0, 0, W, H); }
+  overlays(t);
+  for (const f of FLASH) { const d = t - f; if (d >= 0 && d < 0.35) { x.fillStyle = `rgba(255,255,255,${0.95 * (1 - d / 0.35)})`; x.fillRect(0, 0, W, H); } }
+  // ending: lamp off → black, handle
+  if (t > 29.5) { x.fillStyle = C.ink; x.fillRect(0, 0, W, H); T("@leonario23", 540, 980, { size: 100, w: 900, f: D, c: C.paper, align: "center" }); T("ССЫЛКА В ПРОФИЛЕ", 540, 1070, { size: 40, c: C.red, align: "center", ls: 8 }); }
+  // film look: grain + vignette
+  const v = x.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.78); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,0.6)"); x.fillStyle = v; x.fillRect(0, 0, W, H);
+  const r = rng(Math.floor(t * 60)); x.save(); x.globalAlpha = 0.07; for (let i = 0; i < 900; i++) { x.fillStyle = r() > 0.5 ? "#fff" : "#000"; x.fillRect(r() * W, r() * H, 2, 2); } x.restore();
+  if (t < 29.5) window.drawSubsOn(x, t);
+}
+window.render5 = render5; window.DUR = DUR;
+</script>
+</body>
+</html>
