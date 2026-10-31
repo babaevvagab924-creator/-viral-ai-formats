@@ -438,8 +438,11 @@ h1 em { font-style: normal; color: var(--tangerine); }
     x.globalAlpha = 1;
     const cta = CREATOR.link || CREATOR.handle ? `Сделай свои итоги: ${CREATOR.link || CREATOR.handle}` : "Сделай свои итоги в Claude Wrapped";
     x.font = `700 36px ${BODY}`; x.fillText(cta, P, H - P);
-    return c.toDataURL("image/png");
+    return c;
   }
+  // В артефакте claude.ai скачивание идёт через платформу; на своём сайте работает обычная ссылка.
+  const dlReady = window.claude && typeof window.claude.use === "function" ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null);
+  let lastBlob = null;
 
   /* ---------- player ---------- */
   const DURATION = 6500;
@@ -510,13 +513,22 @@ h1 em { font-style: normal; color: var(--tangerine); }
     if (!stats) return;
     wasPaused = paused; setPaused(true);
     try {
-      const url = await renderPNG(stats);
+      const canvas = await renderPNG(stats);
+      const url = canvas.toDataURL("image/png");
+      lastBlob = await new Promise((r) => canvas.toBlob(r, "image/png"));
       $("png-img").src = url; $("png-dl").href = url;
       $("modal").hidden = false; $("png-dl").focus();
     } catch { status("Не получилось нарисовать картинку. Сделай скриншот последней карточки.", true); setPaused(wasPaused); }
   };
   const closeModal = () => { $("modal").hidden = true; setPaused(wasPaused); $("png").focus(); };
   $("png-close").onclick = closeModal;
+  $("png-dl").addEventListener("click", async (e) => {
+    const dl = await Promise.race([dlReady, new Promise((r) => setTimeout(() => r(null), 300))]);
+    if (!dl || !lastBlob) return; // обычная ссылка download
+    e.preventDefault();
+    try { await dl.save({ filename: "claude-wrapped.png", data: lastBlob }); $("modal-title").textContent = "Картинка сохранена. Выкладывай в сторис!"; }
+    catch (err) { if (err && err.code !== "declined") $("modal-title").textContent = "Скачать не получилось. Зажми картинку и выбери «Сохранить изображение»."; }
+  });
   $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
 
