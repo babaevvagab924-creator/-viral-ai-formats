@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Claude Wrapped</title>
+<title>Компромат</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,8 +34,13 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 28px 48px;
 }
-.wrap { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 56px; align-items: start; }
-@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 32px; } .stage { order: -1; } }
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); grid-template-rows: auto 1fr; grid-template-areas: "intro stage" "howto stage"; gap: 0 56px; align-items: start; }
+.intro { grid-area: intro; } .howto { grid-area: howto; } .stage { grid-area: stage; }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "intro" "stage" "howto"; gap: 32px; }
+  .stage { position: static !important; }
+  .lead { display: none; }
+}
 
 .brand { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: flex; gap: 10px; align-items: center; }
 .brand i { width: 10px; height: 10px; border-radius: 50%; background: var(--tangerine); display: inline-block; }
@@ -165,8 +170,8 @@ h1 em { cursor: pointer; }
 h1 em .lt { display: inline-block; }
 h1 em.jump .lt { animation: jump .6s cubic-bezier(.3,1.6,.5,1); animation-delay: calc(var(--i) * 40ms); }
 @keyframes jump { 40% { transform: translateY(-.32em) rotate(-8deg); } }
-main > * { animation: rise .8s cubic-bezier(.2,.8,.2,1) both; }
-main > *:nth-child(2) { animation-delay: .08s; } main > *:nth-child(3) { animation-delay: .16s; } main > *:nth-child(4) { animation-delay: .24s; }
+.intro > * { animation: rise .8s cubic-bezier(.2,.8,.2,1) both; }
+.intro > *:nth-child(2) { animation-delay: .08s; } .intro > *:nth-child(3) { animation-delay: .16s; } .intro > *:nth-child(4) { animation-delay: .24s; }
 #tagL { cursor: pointer; }
 #fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 15; pointer-events: none; }
 .eggs { font: 400 12px/1.4 var(--mono); color: var(--muted); text-align: center; margin: 0; display: grid; gap: 6px; justify-items: center; }
@@ -192,10 +197,10 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
 </style>
 
 <div class="wrap">
-  <main>
-    <div class="brand"><button class="dot" id="dot" type="button" aria-label="Оранжевая точка"></button> Claude Wrapped · итоги общения с ИИ</div>
-    <h1>Твой год <em>с&nbsp;Claude</em> в&nbsp;десяти карточках</h1>
-    <p class="lead">Загрузи экспорт своих чатов, и приложение посчитает, сколько ты общаешься с Claude, о чём чаще всего спрашиваешь, в какое время суток работаешь и сколько часов удалось сэкономить. Итог сохраняется как сторис-карточки, которыми удобно поделиться.</p>
+  <main class="intro">
+    <div class="brand"><button class="dot" id="dot" type="button" aria-label="Оранжевая точка"></button> Компромат · итоги года с ИИ без цензуры</div>
+    <h1>Весь компромат на&nbsp;твой год <em>с&nbsp;Claude</em></h1>
+    <p class="lead">Загрузи экспорт своих чатов, и приложение посчитает, сколько ты общаешься с Claude, о чём чаще всего спрашиваешь, в какое время суток работаешь и сколько часов удалось сэкономить. Итог выдаётся пачкой сторис-карточек. Выкладывать или нет — решать тебе.</p>
 
     <div class="drop" id="drop">
       <div class="drop-row">
@@ -209,6 +214,9 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
       <p class="hint">Подходит ZIP-архив из письма от Claude или файл <code>conversations.json</code> из него. Можно просто перетащить файл сюда.</p>
       <p class="status" id="status" role="status" aria-live="polite"></p>
     </div>
+  </main>
+
+  <section class="howto" aria-label="Как получить экспорт">
 
     <p class="steps-title">Как получить свой экспорт</p>
     <ol class="steps">
@@ -222,21 +230,22 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
       <span>Файл обрабатывается прямо в браузере и никуда не отправляется. Ни переписка, ни статистика не покидают твоё устройство.</span>
     </div>
     <p class="legal">Неофициальный проект. Не связан с Anthropic. Claude — торговая марка Anthropic.</p>
-  </main>
+  </section>
 
   <aside class="stage" aria-label="Карточки итогов">
     <div class="story" id="story" tabindex="0" aria-roledescription="история" aria-label="Карточки итогов. Нажми справа, чтобы листать вперёд, слева — назад. Зажми, чтобы остановить.">
       <div class="wipe" id="wipe"></div>
       <canvas class="fx-in" id="fxin" aria-hidden="true"></canvas>
       <div class="bars" id="bars"></div>
-      <div class="tag"><span id="tagL">Claude Wrapped</span><span id="tagR"></span></div>
+      <div class="tag"><span id="tagL">Компромат</span><span id="tagR"></span></div>
       <div class="slide" id="slide"></div>
     </div>
     <div class="controls">
       <button class="ctrl" id="prev" type="button" aria-label="Предыдущая карточка">← Назад</button>
       <button class="ctrl" id="pause" type="button">Пауза</button>
       <button class="ctrl" id="next" type="button" aria-label="Следующая карточка">Дальше →</button>
-      <button class="ctrl hot" id="png" type="button">Скачать PNG для сторис</button>
+      <label class="ctrl hot" for="file" id="own">Сделать свой компромат</label>
+      <button class="ctrl" id="png" type="button">Скачать PNG для сторис</button>
       <button class="ctrl" id="copy" type="button">Скопировать итоги</button>
     </div>
     <p class="source" id="source">Сейчас показан пример с выдуманными данными. Загрузи свой экспорт, чтобы увидеть свои цифры. Карточку удобно сохранить скриншотом.</p>
@@ -261,10 +270,10 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
 
 <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal-box">
-    <img id="png-img" alt="Итоговая карточка Claude Wrapped">
+    <img id="png-img" alt="Итоговая карточка Компромат">
     <p id="modal-title">Картинка 1080×1920 готова для сторис. Если файл не скачался, зажми картинку и выбери «Сохранить изображение».</p>
     <div class="row">
-      <a class="btn" id="png-dl" download="claude-wrapped.png" href="#">Скачать PNG</a>
+      <a class="btn" id="png-dl" download="kompromat.png" href="#">Скачать PNG</a>
       <button class="btn ghost" id="png-close" type="button">Закрыть</button>
     </div>
   </div>
@@ -275,8 +284,8 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
 (() => {
   "use strict";
   // Автор приложения: ник и ссылка попадают на каждую карточку и в PNG. Пусто — ничего не показывается.
-  const CREATOR = { handle: "", link: "" };
-  const BRAND = "Claude Wrapped";
+  const CREATOR = { handle: "@leonario23", link: "instagram.com/leonario23" };
+  const BRAND = "Компромат";
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => Math.round(n).toLocaleString("ru-RU");
   const plural = (n, one, few, many) => {
@@ -482,7 +491,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     if (s.badges.length) list.push({ theme: { bg: "#12101a", fg: "#f2e94e" }, motif: "stars", egg: "secret", html: () => `<div class="stack"><div class="kicker">Секретная карточка 🤫</div><div class="mid">Твои тайные достижения</div></div>
              <ul class="badges">${s.badges.slice(0, 5).map((b, i) => `<li style="--i:${i};--r:${[-3, 2, -1.5, 3, -2][i]}deg"><span class="em" aria-hidden="true">${b[0]}</span><span><b>${esc(b[1])}</b><small>${esc(b[2])}</small></span></li>`).join("")}</ul>
              <div class="fine">Эта карточка появляется не у всех</div>` });
-    list.push({ theme: T[9], motif: "confetti", html: () => `<div class="stack"><div class="kicker">Claude Wrapped · итог</div><div class="mid">${esc(s.arch.title)}</div></div>
+    list.push({ theme: T[9], motif: "confetti", html: () => `<div class="stack"><div class="kicker">Компромат · итог</div><div class="mid">${esc(s.arch.title)}</div></div>
              <div class="sum">
                <div style="--i:0"><b>${num(s.chats)}</b><small>чатов</small></div>
                <div style="--i:1"><b>${num(s.activeDays)}</b><small>активных дней</small></div>
@@ -491,7 +500,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
                <div style="--i:4"><b>${String(s.peakHour).padStart(2, "0")}:00</b><small>пиковый час</small></div>
                <div style="--i:5"><b>≈${num(s.savedHours)} ч</b><small>сэкономлено</small></div>
              </div>
-             <div class="stack"><div class="fine">Экономия: слова Claude, написанные вручную со скоростью ≈ 20 слов в минуту. Это оценка, а не точный замер.</div>${CREATOR.link || CREATOR.handle ? `<div class="kicker">Сделай свои итоги: ${esc(CREATOR.link || CREATOR.handle)}</div>` : ""}</div>` });
+             <div class="stack"><div class="fine">Экономия: слова Claude, написанные вручную со скоростью ≈ 20 слов в минуту. Это оценка, а не точный замер.</div>${CREATOR.handle ? `<div class="kicker">Свой компромат → ссылка в ${esc(CREATOR.handle)}</div>` : ""}</div>` });
     return list;
   }
 
@@ -539,7 +548,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     x.globalAlpha = .7; x.font = `400 24px ${MONO}`;
     wrap("Экономия — оценка: слова Claude, написанные вручную со скоростью ≈ 20 слов в минуту.", W - 2 * P).forEach((l, i) => x.fillText(l, P, 1700 + i * 32));
     x.globalAlpha = 1;
-    const cta = CREATOR.link || CREATOR.handle ? `Сделай свои итоги: ${CREATOR.link || CREATOR.handle}` : "Сделай свои итоги в Claude Wrapped";
+    const cta = CREATOR.handle ? `Свой компромат → ссылка в ${CREATOR.handle}` : "Собери свой компромат";
     x.font = `700 36px ${BODY}`; x.fillText(cta, P, H - P);
     return c;
   }
@@ -649,6 +658,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     $("source").textContent = sample
       ? "Сейчас показан пример с выдуманными данными. Загрузи свой экспорт, чтобы увидеть свои цифры. Карточку удобно сохранить скриншотом."
       : `Твои данные: ${fmt(s.chats)} ${plural(s.chats, "чат", "чата", "чатов")} из экспорта. Сохрани любую карточку скриншотом и выложи в сторис.`;
+    $("own").hidden = !sample; $("png").classList.toggle("hot", !sample);
     paused = false; $("pause").textContent = "Пауза"; render(curBg === null ? undefined : story.clientWidth / 2, story.clientHeight / 2);
     cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
   }
@@ -688,7 +698,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
   $("copy").onclick = async () => {
     if (!stats) return;
     const s = stats;
-    const text = `Мой Claude Wrapped${isSample ? " (пример)" : ""}:\n• ${fmt(s.chats)} чатов, ${fmt(s.activeDays)} активных дней\n• Claude написал для меня ${fmt(s.aiWords)} слов\n• Рекордная серия: ${fmt(s.streak)} дн. подряд\n• Пиковый час: ${String(s.peakHour).padStart(2, "0")}:00\n• Мой тип: ${s.arch.title}\n• Сэкономлено ≈ ${fmt(s.savedHours)} ч`;
+    const text = `Мой компромат за год с ИИ${isSample ? " (пример)" : ""}:\n• ${fmt(s.chats)} чатов, ${fmt(s.activeDays)} активных дней\n• Claude написал для меня ${fmt(s.aiWords)} слов\n• Рекордная серия: ${fmt(s.streak)} дн. подряд\n• Пиковый час: ${String(s.peakHour).padStart(2, "0")}:00\n• Мой тип: ${s.arch.title}\n• Сэкономлено ≈ ${fmt(s.savedHours)} ч${CREATOR.handle ? `\nСобери свой: ссылка в ${CREATOR.handle}` : ""}`;
     try { await navigator.clipboard.writeText(text); status("Итоги скопированы. Вставь их в пост или сообщение."); }
     catch { status("Не получилось скопировать автоматически. Сделай скриншот последней карточки.", true); }
   };
@@ -711,7 +721,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     const dl = await Promise.race([dlReady, new Promise((r) => setTimeout(() => r(null), 300))]);
     if (!dl || !lastBlob) return; // обычная ссылка download
     e.preventDefault();
-    try { await dl.save({ filename: "claude-wrapped.png", data: lastBlob }); $("modal-title").textContent = "Картинка сохранена. Выкладывай в сторис!"; }
+    try { await dl.save({ filename: "kompromat.png", data: lastBlob }); $("modal-title").textContent = "Картинка сохранена. Выкладывай в сторис!"; }
     catch (err) { if (err && err.code !== "declined") $("modal-title").textContent = "Скачать не получилось. Зажми картинку и выбери «Сохранить изображение»."; }
   });
   $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) closeModal(); });
