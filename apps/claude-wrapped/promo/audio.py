@@ -3,7 +3,7 @@ Usage: python3 audio.py out.wav"""
 import sys, wave
 import numpy as np
 
-SR, DUR = 44100, 28.0
+SR, DUR = 44100, 30.0
 N = int(SR * DUR)
 L = np.zeros(N); R = np.zeros(N)
 rs = np.random.default_rng(7)
@@ -75,7 +75,7 @@ def glitch(dur=0.3):
 BPM = 125; beat = 60 / BPM; start = 1.48
 notes = [55.0, 55.0, 43.65, 49.0]  # A1 A1 F1 G1 per bar
 t = start; b = 0
-while t < 27.0:
+while t < 29.0:
     silent = 15.0 <= t < 16.0  # comedic pause for "massager"
     if not silent:
         add(kick(), t, 0.9)
@@ -87,16 +87,16 @@ while t < 27.0:
 typing(0.05, 1.0, 40)
 add(riser(1.3), 0.0, 0.7)
 add(glitch(0.3), 1.0, 0.8)
-for ti, g in [(1.48, 1.3), (3.2, 0.6), (9.8, 0.7), (15.0, 0.4), (17.2, 0.8), (23.2, 0.6), (25.0, 0.5)]: add(impact(g), ti, 0.9)
-for ti in [3.0, 6.2, 9.6, 12.8, 17.0, 20.0, 23.0]: add(whoosh(), ti, 0.7, pan=rs.uniform(-0.4, 0.4))
+for ti, g in [(1.48, 1.3), (3.2, 0.6), (9.8, 0.7), (15.0, 0.4), (17.6, 0.8), (23.6, 0.6), (25.4, 0.5)]: add(impact(g), ti, 0.9)
+for ti in [3.0, 6.2, 9.6, 12.8, 17.4, 20.4, 23.4]: add(whoosh(), ti, 0.7, pan=rs.uniform(-0.4, 0.4))
 for a, d in [(3.35, 1.0), (6.9, 1.2), (13.1, 1.7)]:  # slot counters
     for k in range(int(d / 0.045)): add(tick(), a + k * 0.045, 0.5)
 add(scratch(), 15.0, 0.9)
 typing(15.3, 1.2, 26)
-for k, ti in enumerate([17.8, 18.2, 18.6]): add(ding(1320 * (1.12 ** k)), ti, 0.8)
-add(tick() * 3, 24.15, 1.0)  # tap
-for k in range(5): add(whoosh(0.3), 24.35 + k * 0.08, 0.35, pan=(k - 2) * 0.3)
-add(ding(1760), 25.45, 0.6)
+for k, ti in enumerate([18.2, 18.6, 19.0]): add(ding(1320 * (1.12 ** k)), ti, 0.8)
+add(tick() * 3, 24.55, 1.0)  # tap
+for k in range(5): add(whoosh(0.3), 24.75 + k * 0.08, 0.35, pan=(k - 2) * 0.3)
+add(ding(1760), 25.85, 0.6)
 # master: fade out, normalize
 fade = np.ones(N); fl = int(1.0 * SR); fade[-fl:] = np.linspace(1, 0, fl)
 L *= fade; R *= fade

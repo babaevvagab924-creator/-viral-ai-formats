@@ -11,7 +11,7 @@
 <script>
 /* «Компромат» promo v2 — real stats of @leonario23, 28 s, 1080x1920.
    render(t) is deterministic: every frame can be drawn on its own (used by render.js). */
-const W = 1080, H = 1920, DUR = 28;
+const W = 1080, H = 1920, DUR = 30;
 const C = { ink: "#12101a", ink2: "#1d1a28", paper: "#f3efe6", cobalt: "#2f3fe3", orange: "#ff7a1a", mint: "#bff0d4", plum: "#3b1540", lemon: "#f2e94e", rose: "#ff5f7e", cyan: "#4de1ff" };
 const PAL = [C.cobalt, C.orange, C.mint, C.lemon, C.rose, C.paper];
 const D = '"Unbounded", sans-serif', B = '"Onest", sans-serif', M = '"JetBrains Mono", monospace';
@@ -93,8 +93,8 @@ function post(t) {
   x.fillStyle = v; x.fillRect(0, 0, W, H);
   for (const f of FLASHES) { const d = t - f; if (d >= 0 && d < 0.3) { x.fillStyle = `rgba(255,255,255,${0.85 * (1 - d / 0.3)})`; x.fillRect(0, 0, W, H); } }
 }
-const IMPACTS = [1.48, 3.2, 9.8, 15.0, 17.2, 23.2, 25.0];
-const FLASHES = [1.3, 9.8, 17.2];
+const IMPACTS = [1.48, 3.2, 9.8, 15.0, 17.6, 23.6, 25.4];
+const FLASHES = [1.3, 9.8, 17.6];
 function shake(t) {
   let dx = 0, dy = 0, r = 0;
   for (const i of IMPACTS) { const d = t - i; if (d >= 0 && d < 0.55) { const a = 30 * Math.exp(-d * 8); dx += Math.sin(d * 95) * a; dy += Math.cos(d * 73) * a * 0.7; r += Math.sin(d * 60) * a * 0.0006; } }
@@ -138,9 +138,9 @@ const SUBS = [
   { a: 6.7, b: 9.7, text: "200 586 слов — два с половиной романа лично мне", hi: ["200 586", "романа"] },
   { a: 10.1, b: 12.9, text: "Мой пиковый час — полночь. Официально: ночная сова", hi: ["полночь.", "сова"] },
   { a: 13.2, b: 14.95, text: "Самый длинный чат — 321 сообщение", hi: ["321"] },
-  { a: 15.2, b: 17.1, text: "Про… массажёр", hi: ["массажёр"] },
-  { a: 17.45, b: 20.1, text: "Секретные достижения, которые есть не у всех", hi: ["Секретные"] },
-  { a: 20.45, b: 23.1, text: "Мой тип — Инженер. А ты какой?", hi: ["Инженер.", "ты"] },
+  { a: 15.2, b: 17.5, text: "Про… массажёр", hi: ["массажёр"] },
+  { a: 17.85, b: 20.5, text: "Секретные достижения, которые есть не у всех", hi: ["Секретные"] },
+  { a: 20.85, b: 23.5, text: "Мой тип — Инженер. А ты какой?", hi: ["Инженер.", "ты"] },
 ];
 function subtitles(t) {
   const s = SUBS.find((q) => t >= q.a && t < q.b); if (!s) return;
@@ -271,7 +271,7 @@ scene(9.8, 3.2, { type: "cut" }, (t) => {
 });
 
 // 4. The massager chat
-scene(13.0, 4.2, { type: "wipe", ox: W, oy: H }, (t) => {
+scene(13.0, 4.6, { type: "wipe", ox: W, oy: H }, (t) => {
   x.fillStyle = C.ink; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.rose, 8);
   const freeze = t > 2.0, tt = freeze ? 2.0 : t;
   // phone
@@ -299,7 +299,7 @@ scene(13.0, 4.2, { type: "wipe", ox: W, oy: H }, (t) => {
 });
 
 // 5. Secret badges
-scene(17.2, 3.0, { type: "cut" }, (t) => {
+scene(17.6, 3.0, { type: "cut" }, (t) => {
   x.fillStyle = "#0b0a12"; x.fillRect(-80, -80, W + 160, H + 160);
   const sa = Math.sin(t * 1.8) * 0.35; x.save(); x.translate(W / 2, -100); x.rotate(sa); const g = x.createLinearGradient(0, 0, 0, 1900); g.addColorStop(0, "rgba(242,233,78,.35)"); g.addColorStop(1, "rgba(242,233,78,0)"); x.fillStyle = g; x.beginPath(); x.moveTo(-60, 0); x.lineTo(60, 0); x.lineTo(520, 1900); x.lineTo(-520, 1900); x.closePath(); x.fill(); x.restore();
   const r = rng(61); x.save(); x.fillStyle = C.lemon; for (let i = 0; i < 60; i++) { const px = r() * W, py = ((r() * H - t * (40 + r() * 80)) % H + H) % H; x.globalAlpha = 0.3 * r(); x.beginPath(); x.arc(px, py, 2 + r() * 3, 0, 6.283); x.fill(); } x.restore();
@@ -322,7 +322,7 @@ scene(17.2, 3.0, { type: "cut" }, (t) => {
 });
 
 // 6. Type card flip
-scene(20.2, 3.0, { type: "wipe", ox: W / 2, oy: H / 2 }, (t) => {
+scene(20.6, 3.0, { type: "wipe", ox: W / 2, oy: H / 2 }, (t) => {
   x.fillStyle = C.cobalt; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.lemon, 12);
   const ang = lerp(Math.PI, 0, oBack(prog(t, 0.1, 0.8), 1.2)), sx = Math.cos(ang), front = sx >= 0;
   x.save(); x.translate(W / 2, 760); x.scale(Math.max(0.02, Math.abs(sx)), 1); x.rotate((1 - Math.abs(sx)) * 0.05);
@@ -344,7 +344,7 @@ scene(20.2, 3.0, { type: "wipe", ox: W / 2, oy: H / 2 }, (t) => {
 function slamCentered(s, y, t, at) { slam(s, W / 2, y, t, at, { size: 96, c: C.lemon, align: "center", stroke: C.ink, strokeW: 14 }); }
 
 // 7. CTA with phone + tap + cards flying out
-scene(23.2, 4.8, { type: "zoom" }, (t) => {
+scene(23.6, 6.4, { type: "zoom" }, (t) => {
   x.fillStyle = C.orange; x.fillRect(-80, -80, W + 160, H + 160); lightLeak(t, C.lemon, 15);
   const cards = [[C.cobalt, "73"], [C.plum, "00:00"], [C.lemon, "10"], [C.rose, "321"], [C.mint, "Инженер"]];
   cards.forEach(([col, label], i) => {
