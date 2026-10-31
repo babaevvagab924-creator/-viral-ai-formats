@@ -114,6 +114,7 @@ h1 em { font-style: normal; color: var(--tangerine); }
 .slide .txt { font-size: 17px; line-height: 1.4; max-width: 22em; }
 .slide .fine { font: 400 11px/1.4 var(--mono); opacity: .7; }
 .slide .stack { display: grid; gap: 14px; }
+.slide .letters { white-space: nowrap; overflow-wrap: normal; }
 .anim > * { animation: rise .7s cubic-bezier(.2,.8,.2,1) both; }
 .anim > *:nth-child(2) { animation-delay: .12s; } .anim > *:nth-child(3) { animation-delay: .24s; } .anim > *:nth-child(4) { animation-delay: .36s; }
 @keyframes rise { from { transform: translateY(18px); opacity: .0; } to { transform: none; opacity: 1; } }
@@ -639,13 +640,20 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
       el.innerHTML = [...el.textContent].map((c, i) => `<span class="ch" style="--i:${i}">${esc(c)}</span>`).join("");
     });
   }
+  // One-word titles never break mid-word: shrink until they fit the card.
+  function fitWords(root) {
+    root.querySelectorAll(".letters").forEach((el) => {
+      let size = parseFloat(getComputedStyle(el).fontSize);
+      while (el.scrollWidth > el.clientWidth + 1 && size > 24) { size -= 2; el.style.fontSize = size + "px"; }
+    });
+  }
 
   function render(ox, oy) {
     const sl = slides[idx], th = sl.theme;
     transition(th, ox, oy, () => {
       slideEl.className = "slide" + (reduce ? "" : " anim");
       slideEl.innerHTML = sl.html();
-      enhance(slideEl); countUp(slideEl);
+      enhance(slideEl); fitWords(slideEl); countUp(slideEl);
     });
     startMotif(sl.motif, th.fg);
     [...bars.children].forEach((b, i) => { b.classList.toggle("done", i < idx); b.firstChild.style.width = i < idx ? "100%" : "0"; });
