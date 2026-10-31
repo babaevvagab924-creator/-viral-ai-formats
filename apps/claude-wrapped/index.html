@@ -64,6 +64,7 @@ h1 em { font-style: normal; color: var(--tangerine); }
 .hint { font-size: 14px; color: var(--muted); margin: 0; }
 .status { font-family: var(--mono); font-size: 13px; min-height: 1.4em; margin: 0; color: var(--mint); }
 .status.err { color: var(--rose); }
+.manifest { display: grid; gap: 10px; }
 
 .steps { margin: 32px 0 0; padding: 0; list-style: none; display: grid; gap: 14px; counter-reset: s; }
 .steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: start; color: #d9d3e6; }
@@ -208,11 +209,15 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
           Загрузить экспорт
         </label>
-        <input id="file" type="file" accept=".zip,.json,application/zip,application/json" hidden>
+        <input id="file" type="file" accept=".zip,.json,application/zip,application/json" multiple hidden>
         <button class="btn ghost" id="demo" type="button">Показать пример</button>
       </div>
-      <p class="hint">Подходит ZIP-архив из письма от Claude или файл <code>conversations.json</code> из него. Можно просто перетащить файл сюда.</p>
+      <p class="hint">Нужен архив <code>conversations-000.zip</code> из экспорта Claude. Если загрузить файл-оглавление <code>manifest…json</code> из письма, приложение покажет, что скачать.</p>
       <p class="status" id="status" role="status" aria-live="polite"></p>
+      <div class="manifest" id="manifest" hidden>
+        <p class="hint">Claude присылает экспорт по частям. Нажми кнопку, скачай архив и загрузи его сюда той же кнопкой «Загрузить экспорт». Ссылка работает 24 часа.</p>
+        <div class="drop-row" id="manifest-links"></div>
+      </div>
     </div>
   </main>
 
@@ -222,7 +227,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     <ol class="steps">
       <li><span>Открой <b>claude.ai → Настройки → Конфиденциальность</b> (Settings → Privacy).</span></li>
       <li><span>Нажми <b>«Экспорт данных»</b> (Export data). Через несколько минут придёт письмо со ссылкой.</span></li>
-      <li><span>Скачай ZIP из письма и загрузи его сюда. Распаковывать не нужно.</span></li>
+      <li><span>Письмо ведёт на файл-оглавление со списком архивов. Скачай тот, где <b>category: conversations</b> (<code>conversations-000.zip</code>), и загрузи сюда. Распаковывать не нужно.</span></li>
     </ol>
 
     <div class="privacy">
@@ -729,32 +734,57 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
 
   function status(msg, err) { const el = $("status"); el.textContent = msg; el.classList.toggle("err", !!err); }
 
-  async function readFile(file) {
-    status(`Читаю «${file.name}»…`);
+  // Claude's export comes as a manifest JSON with links to several ZIPs; chats live in "conversations-*.zip".
+  function collect(val, out) {
+    if (!val || typeof val !== "object") return;
+    if (Array.isArray(val.data_files)) {
+      for (const f of val.data_files) if (f && f.category === "conversations" && /^https:\/\/claude\.ai\//.test(f.export_url || "")) out.links.push({ url: f.export_url, name: f.filename || "conversations.zip" });
+      out.manifest = true; return;
+    }
+    if (Array.isArray(val)) {
+      if (val.some((c) => c && (Array.isArray(c.chat_messages) || Array.isArray(c.messages)))) { out.convs.push(...val); return; }
+      for (const v of val) collect(v, out);
+      return;
+    }
+    if (Array.isArray(val.chat_messages)) { out.convs.push(val); return; }
+    if (Array.isArray(val.conversations)) collect(val.conversations, out);
+  }
+  async function readFiles(files) {
+    status(files.length > 1 ? `Читаю ${files.length} файла…` : `Читаю «${files[0].name}»…`);
+    $("manifest").hidden = true;
+    const out = { convs: [], links: [], manifest: false };
     try {
-      let text;
-      if (/\.zip$/i.test(file.name) || file.type.includes("zip")) {
-        if (!window.JSZip) throw new Error("Не загрузился модуль для ZIP. Распакуй архив и загрузи conversations.json.");
-        const zip = await JSZip.loadAsync(file);
-        const entry = Object.values(zip.files).find((f) => /(^|\/)conversations\.json$/i.test(f.name));
-        if (!entry) throw new Error("В архиве нет conversations.json. Убедись, что это экспорт из claude.ai.");
-        text = await entry.async("string");
-      } else {
-        text = await file.text();
+      for (const file of files) {
+        if (/\.zip$/i.test(file.name) || file.type.includes("zip")) {
+          if (!window.JSZip) throw new Error("Не загрузился модуль для ZIP. Проверь интернет и попробуй ещё раз.");
+          const zip = await JSZip.loadAsync(file);
+          for (const entry of Object.values(zip.files)) {
+            if (entry.dir || !/\.json$/i.test(entry.name)) continue;
+            try { collect(JSON.parse(await entry.async("string")), out); } catch {}
+          }
+        } else {
+          try { collect(JSON.parse(await file.text()), out); } catch { throw new Error(`«${file.name}» не похож на экспорт Claude. Нужен ZIP из письма.`); }
+        }
       }
-      let raw;
-      try { raw = JSON.parse(text); } catch { throw new Error("Файл не похож на JSON. Нужен conversations.json или ZIP из письма Claude."); }
-      const s = computeStats(normalize(raw));
+      if (!out.convs.length) {
+        if (out.manifest) {
+          $("manifest-links").innerHTML = out.links.map((l) => `<a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener">Скачать ${esc(l.name)}</a>`).join("") || "<p class=\"hint\">В оглавлении нет ссылки на разговоры. Запроси экспорт заново.</p>";
+          $("manifest").hidden = false; status("Это оглавление экспорта. Скачай архив с разговорами по кнопке ниже и загрузи его сюда.", true);
+          return;
+        }
+        throw new Error("В файле не нашлось разговоров. Нужен архив conversations-000.zip из экспорта Claude.");
+      }
+      const s = computeStats(normalize(out.convs));
       load(s, false);
       status(`Готово: ${fmt(s.chats)} ${plural(s.chats, "чат", "чата", "чатов")}, ${fmt(s.humanMsgs + s.aiMsgs)} ${plural(s.humanMsgs + s.aiMsgs, "сообщение", "сообщения", "сообщений")}.`);
       if (matchMedia("(max-width: 860px)").matches) story.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
     } catch (e) { status(e.message || "Не получилось прочитать файл.", true); }
   }
-  $("file").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) readFile(f); e.target.value = ""; });
+  $("file").addEventListener("change", (e) => { const f = [...e.target.files]; if (f.length) readFiles(f); e.target.value = ""; });
   const drop = $("drop");
   ["dragenter", "dragover"].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
   ["dragleave", "drop"].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); if (t === "drop" || e.target === document.documentElement) drop.classList.remove("over"); }));
-  document.addEventListener("drop", (e) => { const f = e.dataTransfer?.files?.[0]; if (f) readFile(f); });
+  document.addEventListener("drop", (e) => { const f = [...(e.dataTransfer?.files || [])]; if (f.length) readFiles(f); });
 
   /* ---------- particles inside the story card ---------- */
   const fxIn = $("fxin"), fx = fxIn.getContext("2d");
