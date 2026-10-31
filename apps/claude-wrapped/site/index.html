@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Компромат — итоги года с ИИ без цензуры</title>
+<meta name="description" content="Загрузи экспорт чатов из Claude и получи сторис-карточки: сколько чатов, сколько слов написал ИИ, твой пиковый час и тип. Бесплатно, всё считается в браузере.">
+<meta name="theme-color" content="#12101a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312101a'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23ff7a1a'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Компромат — итоги года с ИИ без цензуры">
+<meta property="og:description" content="Загрузи экспорт чатов из Claude и получи сторис-карточки: сколько чатов, сколько слов написал ИИ, твой пиковый час и тип. Бесплатно, всё считается в браузере.">
+<meta property="og:url" content="https://babaevvagab924-creator.github.io/kompromat/">
+<meta property="og:image" content="https://babaevvagab924-creator.github.io/kompromat/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: two-column stage — pitch + upload on the left, a 9:16 story player on the right; stacks on phones.
+   Single deliberate look: dark ink shell, each story card is its own saturated color field. */
+:root {
+  --ink: #12101a;
+  --ink-2: #1d1a28;
+  --line: #2e2a3d;
+  --paper: #f3efe6;
+  --muted: #a39db3;
+  --cobalt: #2f3fe3;
+  --tangerine: #ff7a1a;
+  --mint: #bff0d4;
+  --plum: #3b1540;
+  --lemon: #f2e94e;
+  --rose: #ff5f7e;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--ink); color: var(--paper); }
+body {
+  font-family: var(--body); font-size: 16px; line-height: 1.55; margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); grid-template-rows: auto 1fr; grid-template-areas: "intro stage" "howto stage"; gap: 0 56px; align-items: start; }
+.intro { grid-area: intro; } .howto { grid-area: howto; } .stage { grid-area: stage; }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "intro" "stage" "howto"; gap: 32px; }
+  .stage { position: static !important; }
+  .lead { display: none; }
+}
+
+.brand { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.brand i { width: 10px; height: 10px; border-radius: 50%; background: var(--tangerine); display: inline-block; }
+h1 { font-family: var(--display); font-weight: 900; font-size: clamp(38px, 6vw, 64px); line-height: 1.02; margin: 18px 0 18px; text-wrap: balance; letter-spacing: -.01em; }
+h1 em { font-style: normal; color: var(--tangerine); }
+.lead { font-size: 18px; color: #d9d3e6; max-width: 34em; margin: 0 0 28px; }
+
+.drop {
+  border: 1.5px dashed #4a4460; border-radius: 18px; padding: 22px; display: grid; gap: 14px;
+  background: var(--ink-2); transition: border-color .2s, background .2s;
+}
+.drop.over { border-color: var(--tangerine); background: #241d2a; }
+.drop-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn {
+  font: 600 15px/1 var(--body); border: 0; border-radius: 999px; padding: 14px 20px; cursor: pointer;
+  background: var(--tangerine); color: var(--ink); display: inline-flex; gap: 8px; align-items: center;
+}
+.btn.ghost { background: transparent; color: var(--paper); box-shadow: inset 0 0 0 1.5px #4a4460; }
+.btn:focus-visible, .story:focus-visible, .ctrl:focus-visible { outline: 3px solid var(--lemon); outline-offset: 3px; }
+.btn:hover { filter: brightness(1.08); }
+.hint { font-size: 14px; color: var(--muted); margin: 0; }
+.status { font-family: var(--mono); font-size: 13px; min-height: 1.4em; margin: 0; color: var(--mint); }
+.status.err { color: var(--rose); }
+
+.steps { margin: 32px 0 0; padding: 0; list-style: none; display: grid; gap: 14px; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: start; color: #d9d3e6; }
+.steps li::before { counter-increment: s; content: counter(s); font: 700 13px/34px var(--display); width: 34px; height: 34px; text-align: center; border-radius: 50%; background: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--tangerine); }
+.steps b { color: var(--paper); }
+.steps-title { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 36px 0 0; }
+.privacy { margin-top: 28px; padding: 16px 18px; border-radius: 14px; background: #17251f; color: var(--mint); font-size: 14px; display: flex; gap: 12px; }
+.privacy svg { flex: none; margin-top: 2px; }
+
+/* ---------- story player ---------- */
+.stage { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); display: grid; gap: 14px; justify-items: center; }
+.story {
+  position: relative; width: 100%; max-width: 420px; aspect-ratio: 9 / 16; max-height: 82vh;
+  border-radius: 26px; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none;
+  box-shadow: 0 30px 80px -30px #000, 0 0 0 1px #ffffff14;
+  background: var(--cobalt); color: var(--paper); isolation: isolate;
+  transition: color .4s ease, transform .25s ease;
+}
+.bars { position: absolute; z-index: 3; top: 14px; left: 14px; right: 14px; display: flex; gap: 4px; }
+.bars span { flex: 1; height: 3px; border-radius: 3px; background: color-mix(in srgb, currentColor 28%, transparent); overflow: hidden; }
+.bars span i { display: block; height: 100%; width: 0; background: currentColor; }
+.bars span.done i { width: 100%; }
+.tag { position: absolute; z-index: 3; top: 28px; left: 16px; right: 16px; display: flex; justify-content: space-between; font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.tag .sample { background: currentColor; border-radius: 4px; padding: 4px 6px; }
+.tag .sample b { color: var(--story-bg, var(--ink)); font-weight: 600; }
+.slide { position: absolute; inset: 0; padding: 66px 26px 30px; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
+.slide .kicker { font: 600 12px/1.3 var(--mono); letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
+.slide .big { font-family: var(--display); font-weight: 900; line-height: .92; letter-spacing: -.02em; font-size: clamp(64px, 22vw, 108px); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.slide .mid { font-family: var(--display); font-weight: 700; line-height: 1.05; font-size: clamp(28px, 8vw, 40px); text-wrap: balance; overflow-wrap: anywhere; }
+.slide .txt { font-size: 17px; line-height: 1.4; max-width: 22em; }
+.slide .fine { font: 400 11px/1.4 var(--mono); opacity: .7; }
+.slide .stack { display: grid; gap: 14px; }
+.anim > * { animation: rise .7s cubic-bezier(.2,.8,.2,1) both; }
+.anim > *:nth-child(2) { animation-delay: .12s; } .anim > *:nth-child(3) { animation-delay: .24s; } .anim > *:nth-child(4) { animation-delay: .36s; }
+@keyframes rise { from { transform: translateY(18px); opacity: .0; } to { transform: none; opacity: 1; } }
+
+.hours { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; align-items: end; height: 120px; }
+.hours span { background: currentColor; opacity: .35; border-radius: 3px 3px 0 0; min-height: 3px; }
+.hours span.peak { opacity: 1; }
+.hours-axis { display: flex; justify-content: space-between; font: 400 10px/1 var(--mono); opacity: .7; margin-top: 6px; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.week div { display: grid; gap: 6px; justify-items: center; font: 600 11px/1 var(--mono); }
+.week div span { width: 100%; aspect-ratio: 1; border-radius: 8px; background: currentColor; }
+.rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rank li { display: grid; grid-template-columns: 30px minmax(0,1fr) auto; gap: 10px; align-items: baseline; font-family: var(--display); font-weight: 700; font-size: clamp(20px, 6vw, 28px); line-height: 1.15; }
+.rank li small { font: 600 12px/1 var(--mono); opacity: .7; }
+.rank li span { overflow-wrap: anywhere; }
+.rank li:first-child { font-size: clamp(30px, 9vw, 42px); }
+.sum { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.sum div { display: grid; gap: 2px; border-top: 1.5px solid color-mix(in srgb, currentColor 35%, transparent); padding-top: 8px; }
+.sum b { font: 900 clamp(22px, 7vw, 30px)/1 var(--display); font-variant-numeric: tabular-nums; }
+.sum small { font: 600 10.5px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.ctrl { font: 600 13px/1 var(--body); color: var(--paper); background: var(--ink-2); border: 0; box-shadow: inset 0 0 0 1px var(--line); border-radius: 999px; padding: 10px 14px; cursor: pointer; }
+.ctrl:hover { background: #29243a; }
+.source { font: 400 12px/1.4 var(--mono); color: var(--muted); text-align: center; margin: 0; max-width: 420px; }
+.ctrl.hot { background: var(--tangerine); color: var(--ink); box-shadow: none; }
+.ctrl.hot:hover { background: var(--tangerine); filter: brightness(1.08); }
+.legal { font-size: 12px; color: var(--muted); margin: 18px 0 0; }
+
+/* ---------- PNG preview ---------- */
+.modal { position: fixed; inset: 0; z-index: 20; background: #0b0a10e6; display: grid; place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal-box { display: grid; gap: 14px; justify-items: center; max-width: 420px; width: 100%; }
+.modal img { max-height: 68vh; max-width: 100%; border-radius: 14px; box-shadow: 0 20px 60px -20px #000; -webkit-touch-callout: default; }
+.modal p { margin: 0; font-size: 14px; color: #d9d3e6; text-align: center; }
+.modal .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* ---------- motion ---------- */
+.wipe { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.fx-in { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
+.slide { z-index: 3; }
+.slide.ghost { z-index: 0; }
+.slide.ghost * { animation: none !important; }
+.bars, .tag { z-index: 4 !important; }
+.story::before { content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; background: radial-gradient(circle at var(--gx, 50%) var(--gy, 0%), #ffffff33, transparent 48%); opacity: var(--glare, 0); transition: opacity .3s; }
+.story.held { transform: scale(.985) !important; }
+.w { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: .1em; margin-bottom: -.1em; }
+.w > span { display: inline-block; animation: wordUp .8s cubic-bezier(.2,.9,.1,1) both; animation-delay: calc(var(--i) * 70ms + .12s); }
+@keyframes wordUp { from { transform: translateY(110%) rotate(5deg); } to { transform: none; } }
+.ch { display: inline-block; animation: drop .75s cubic-bezier(.3,1.5,.4,1) both; animation-delay: calc(var(--i) * 55ms + .15s); }
+@keyframes drop { from { transform: translateY(-130%) rotate(-14deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.anim .hours span { transform-origin: bottom; animation: grow .7s cubic-bezier(.2,.9,.2,1) both; animation-delay: calc(var(--i) * 28ms + .3s); }
+.anim .hours span.peak { animation: grow .7s cubic-bezier(.2,.9,.2,1) both, bob 1.4s ease-in-out infinite alternate; animation-delay: calc(var(--i) * 28ms + .3s), 1.3s; }
+@keyframes grow { from { transform: scaleY(0); } to { transform: none; } }
+@keyframes bob { to { transform: translateY(-6px); } }
+.anim .week span, .anim .sum > div { animation: popIn .55s cubic-bezier(.3,1.6,.4,1) both; animation-delay: calc(var(--i) * 75ms + .35s); }
+@keyframes popIn { from { transform: scale(0) rotate(-18deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.anim .rank li { animation: slideIn .6s cubic-bezier(.2,.9,.2,1) both; animation-delay: calc(var(--i) * 110ms + .2s); }
+@keyframes slideIn { from { transform: translateX(-48px); opacity: 0; } to { transform: none; opacity: 1; } }
+.badges { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.badges li { display: grid; grid-template-columns: 44px minmax(0,1fr); gap: 12px; align-items: center; border: 2px solid currentColor; border-radius: 14px; padding: 10px 12px; transform: rotate(var(--r)); }
+.anim .badges li { animation: stamp .55s cubic-bezier(.3,1.4,.4,1) both; animation-delay: calc(var(--i) * 260ms + .35s); }
+@keyframes stamp { from { transform: scale(2.2) rotate(-10deg); opacity: 0; } to { transform: rotate(var(--r)); opacity: 1; } }
+.badges .em { font-size: 30px; line-height: 1; text-align: center; }
+.badges b { display: block; font: 700 17px/1.2 var(--display); }
+.badges small { display: block; font-size: 13px; opacity: .8; }
+.brand .dot { width: 14px; height: 14px; padding: 0; border: 0; border-radius: 50%; background: var(--tangerine); cursor: pointer; animation: pulse 2.4s ease-in-out infinite; }
+.brand .dot.bump { animation: bump .3s ease; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 #ff7a1a66; } 50% { box-shadow: 0 0 0 7px #ff7a1a00; } }
+@keyframes bump { 50% { transform: scale(1.6); } }
+h1 em { cursor: pointer; }
+h1 em .lt { display: inline-block; }
+h1 em.jump .lt { animation: jump .6s cubic-bezier(.3,1.6,.5,1); animation-delay: calc(var(--i) * 40ms); }
+@keyframes jump { 40% { transform: translateY(-.32em) rotate(-8deg); } }
+.intro > * { animation: rise .8s cubic-bezier(.2,.8,.2,1) both; }
+.intro > *:nth-child(2) { animation-delay: .08s; } .intro > *:nth-child(3) { animation-delay: .16s; } .intro > *:nth-child(4) { animation-delay: .24s; }
+#tagL { cursor: pointer; }
+#fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 15; pointer-events: none; }
+.eggs { font: 400 12px/1.4 var(--mono); color: var(--muted); text-align: center; margin: 0; display: grid; gap: 6px; justify-items: center; }
+.eggs .dots { letter-spacing: .3em; color: var(--tangerine); }
+.eggs details { max-width: 420px; }
+.eggs summary { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.eggs ul { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; text-align: left; }
+.toast { position: fixed; z-index: 30; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px);
+  background: var(--paper); color: var(--ink); font: 600 14px/1.35 var(--body); padding: 12px 16px; border-radius: 14px; box-shadow: 0 16px 40px -12px #000; display: flex; gap: 10px; align-items: center; animation: toastIn .5s cubic-bezier(.2,1.3,.3,1) both; }
+.toast small { font: 600 11px/1 var(--mono); background: var(--tangerine); border-radius: 6px; padding: 5px 7px; white-space: nowrap; }
+.toast.out { animation: toastOut .35s ease-in both; }
+@keyframes toastIn { from { transform: translate(-50%, 160%); } to { transform: translateX(-50%); } }
+@keyframes toastOut { to { transform: translate(-50%, 160%); opacity: 0; } }
+/* retro mode (easter egg) */
+body.retro .story { border-radius: 4px; }
+body.retro .story .big, body.retro .story .mid, body.retro .story .rank li, body.retro .story .sum b, body.retro .story .badges b { font-family: "Press Start 2P", var(--mono); letter-spacing: 0; font-weight: 400; }
+body.retro .slide .big { font-size: clamp(34px, 11vw, 56px); line-height: 1.15; }
+body.retro .slide .mid { font-size: clamp(16px, 4.6vw, 22px); line-height: 1.45; }
+body.retro .rank li, body.retro .rank li:first-child { font-size: clamp(14px, 4vw, 18px); }
+body.retro .sum b { font-size: clamp(13px, 3.8vw, 17px); line-height: 1.3; }
+body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none; background: repeating-linear-gradient(to bottom, #0000 0 2px, #0000002e 2px 4px); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <main class="intro">
+    <div class="brand"><button class="dot" id="dot" type="button" aria-label="Оранжевая точка"></button> Компромат · итоги года с ИИ без цензуры</div>
+    <h1>Весь компромат на&nbsp;твой год <em>с&nbsp;Claude</em></h1>
+    <p class="lead">Загрузи экспорт своих чатов, и приложение посчитает, сколько ты общаешься с Claude, о чём чаще всего спрашиваешь, в какое время суток работаешь и сколько часов удалось сэкономить. Итог выдаётся пачкой сторис-карточек. Выкладывать или нет — решать тебе.</p>
+
+    <div class="drop" id="drop">
+      <div class="drop-row">
+        <label class="btn" for="file">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
+          Загрузить экспорт
+        </label>
+        <input id="file" type="file" accept=".zip,.json,application/zip,application/json" hidden>
+        <button class="btn ghost" id="demo" type="button">Показать пример</button>
+      </div>
+      <p class="hint">Подходит ZIP-архив из письма от Claude или файл <code>conversations.json</code> из него. Можно просто перетащить файл сюда.</p>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </div>
+  </main>
+
+  <section class="howto" aria-label="Как получить экспорт">
+
+    <p class="steps-title">Как получить свой экспорт</p>
+    <ol class="steps">
+      <li><span>Открой <b>claude.ai → Настройки → Конфиденциальность</b> (Settings → Privacy).</span></li>
+      <li><span>Нажми <b>«Экспорт данных»</b> (Export data). Через несколько минут придёт письмо со ссылкой.</span></li>
+      <li><span>Скачай ZIP из письма и загрузи его сюда. Распаковывать не нужно.</span></li>
+    </ol>
+
+    <div class="privacy">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <span>Файл обрабатывается прямо в браузере и никуда не отправляется. Ни переписка, ни статистика не покидают твоё устройство.</span>
+    </div>
+    <p class="legal">Неофициальный проект. Не связан с Anthropic. Claude — торговая марка Anthropic.</p>
+  </section>
+
+  <aside class="stage" aria-label="Карточки итогов">
+    <div class="story" id="story" tabindex="0" aria-roledescription="история" aria-label="Карточки итогов. Нажми справа, чтобы листать вперёд, слева — назад. Зажми, чтобы остановить.">
+      <div class="wipe" id="wipe"></div>
+      <canvas class="fx-in" id="fxin" aria-hidden="true"></canvas>
+      <div class="bars" id="bars"></div>
+      <div class="tag"><span id="tagL">Компромат</span><span id="tagR"></span></div>
+      <div class="slide" id="slide"></div>
+    </div>
+    <div class="controls">
+      <button class="ctrl" id="prev" type="button" aria-label="Предыдущая карточка">← Назад</button>
+      <button class="ctrl" id="pause" type="button">Пауза</button>
+      <button class="ctrl" id="next" type="button" aria-label="Следующая карточка">Дальше →</button>
+      <label class="ctrl hot" for="file" id="own">Сделать свой компромат</label>
+      <button class="ctrl" id="png" type="button">Скачать PNG для сторис</button>
+      <button class="ctrl" id="copy" type="button">Скопировать итоги</button>
+    </div>
+    <p class="source" id="source">Сейчас показан пример с выдуманными данными. Загрузи свой экспорт, чтобы увидеть свои цифры. Карточку удобно сохранить скриншотом.</p>
+    <div class="eggs">
+      <span class="dots" id="eggs-dots" aria-hidden="true">○○○○○○</span>
+      <details>
+        <summary id="eggs-count">Пасхалок найдено: 0 из 6</summary>
+        <ul>
+          <li>● Оранжевая точка любит, когда по ней стучат.</li>
+          <li>● Слово «Claude» в заголовке боится щекотки.</li>
+          <li>● Код из 80-х: ↑↑↓↓←→←→BA. На телефоне три быстрых тапа по надписи на карточке.</li>
+          <li>● Напиши на клавиатуре тайное слово. Это имя.</li>
+          <li>● Загляни сюда ночью.</li>
+          <li>● Особые достижения открывают секретную карточку.</li>
+        </ul>
+      </details>
+    </div>
+  </aside>
+</div>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <img id="png-img" alt="Итоговая карточка Компромат">
+    <p id="modal-title">Картинка 1080×1920 готова для сторис. Если файл не скачался, зажми картинку и выбери «Сохранить изображение».</p>
+    <div class="row">
+      <a class="btn" id="png-dl" download="kompromat.png" href="#">Скачать PNG</a>
+      <button class="btn ghost" id="png-close" type="button">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(() => {
+  "use strict";
+  // Автор приложения: ник и ссылка попадают на каждую карточку и в PNG. Пусто — ничего не показывается.
+  const CREATOR = { handle: "@leonario23", link: "instagram.com/leonario23" };
+  const BRAND = "Компромат";
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => Math.round(n).toLocaleString("ru-RU");
+  const plural = (n, one, few, many) => {
+    const a = Math.abs(Math.round(n)) % 100, b = a % 10;
+    if (a > 10 && a < 20) return many;
+    if (b > 1 && b < 5) return few;
+    if (b === 1) return one;
+    return many;
+  };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const MONTHS = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+  const MONTHS_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+  const DAYS = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
+  const DAYS_ACC = ["воскресенье","понедельник","вторник","среду","четверг","пятницу","субботу"];
+  const DAYS_SHORT = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+  const dateRu = (d) => `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getFullYear()}`;
+  const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const words = (t) => (t.match(/[\p{L}\p{N}]+/gu) || []).length;
+
+  /* ---------- parsing the claude.ai export ---------- */
+  function partText(m) {
+    if (typeof m.text === "string" && m.text.trim()) return m.text;
+    if (Array.isArray(m.content)) return m.content.filter((p) => p && p.type === "text" && p.text).map((p) => p.text).join("\n");
+    return "";
+  }
+  function normalize(raw) {
+    const list = Array.isArray(raw) ? raw : Array.isArray(raw?.conversations) ? raw.conversations : null;
+    if (!list) throw new Error("В файле не нашлось списка разговоров. Нужен conversations.json из экспорта claude.ai.");
+    const convs = list.map((c) => {
+      const created = new Date(c.created_at || c.updated_at || Date.now());
+      const msgs = (c.chat_messages || c.messages || []).map((m) => ({
+        human: m.sender === "human" || m.role === "user",
+        t: new Date(m.created_at || c.created_at || created),
+        text: partText(m),
+      })).filter((m) => !isNaN(m.t));
+      return { name: (c.name || "").trim() || "Без названия", created, msgs };
+    }).filter((c) => c.msgs.length);
+    if (!convs.length) throw new Error("Разговоры нашлись, но в них нет сообщений. Проверь, что это полный экспорт.");
+    return convs;
+  }
+
+  /* ---------- stats ---------- */
+  const STOP = new Set(("и в во не что он на я с со как а то все она так его но да ты к у же вы за бы по только ее мне было вот от меня еще нет о из ему теперь когда даже ну вдруг ли если уже или ни быть был него до вас нибудь опять уж вам ведь там потом себя ничего ей может они тут где есть надо ней для мы тебя их чем была сам чтоб без будто чего раз тоже себе под будет ж тогда кто этот того потому этого какой совсем ним здесь этом один почти мой тем чтобы нее сейчас были куда зачем всех никогда можно при наконец два об другой хоть после над больше тот через эти нас про всего них какая много разве три эту моя впрочем хорошо свою этой перед иногда лучше чуть том нельзя такой им более всегда конечно всю между это как помоги помощь нужно сделать хочу можешь напиши создать создание новый новая новое про the and for with from that this your you how what why are can into about using use new help make create write chat untitled без названия").split(" "));
+  const ARCH = [
+    { key: "code", title: "Инженер", line: "Ты строишь вещи. Код, ошибки, деплой: Claude для тебя второй разработчик в команде.", re: /код|python|javascript|js|sql|api|баг|ошибк|скрипт|функци|react|html|css|сервер|git|deploy|бот|code|bug|error|script|app|приложен|сайт/i },
+    { key: "create", title: "Креатор", line: "Сценарии, хуки, посты, идеи для видео. Ты превращаешь Claude в свою продакшн-студию.", re: /видео|reels|рилс|tiktok|тикток|shorts|сценар|хук|пост|контент|канал|блог|youtube|ютуб|карусел|промпт|prompt|instagram|инстаграм|сторис|монтаж|video|content|caption/i },
+    { key: "learn", title: "Исследователь", line: "Ты задаёшь вопросы, на которые нет быстрых ответов. Каждый чат для тебя маленький урок.", re: /почему|объясни|как работает|что такое|история|наук|учеб|урок|экзамен|задач|физик|математ|explain|learn|study|history|research|перевод|английск/i },
+    { key: "work", title: "Стратег", line: "Планы, письма, таблицы, презентации. Ты используешь Claude как личного ассистента и операционного директора.", re: /план|стратег|бизнес|письм|email|резюме|ваканс|презентац|отчёт|отчет|маркетинг|продаж|клиент|проект|таблиц|excel|business|plan|resume|report|marketing/i },
+    { key: "life", title: "Собеседник", line: "Ты обсуждаешь с Claude то, что важно лично тебе: от рецептов до больших жизненных решений.", re: /совет|отношен|здоров|рецепт|путешеств|спорт|трениров|психолог|подар|мысл|жизн|настроен|advice|recipe|travel|health/i },
+  ];
+
+  function computeStats(convs) {
+    const hours = new Array(24).fill(0), week = new Array(7).fill(0), months = new Map(), days = new Set();
+    let humanMsgs = 0, aiMsgs = 0, humanWords = 0, aiWords = 0, first = null, last = null;
+    const tokenCount = new Map(), archScore = Object.fromEntries(ARCH.map((a) => [a.key, 0]));
+    let longest = convs[0], newYear = false, fri13 = false;
+    for (const c of convs) {
+      if (c.msgs.length > longest.msgs.length) longest = c;
+      const firstHuman = c.msgs.find((m) => m.human);
+      const probe = c.name + " " + (firstHuman ? firstHuman.text.slice(0, 400) : "");
+      for (const a of ARCH) if (a.re.test(probe)) archScore[a.key] += 1;
+      for (const tok of (c.name.toLowerCase().match(/[\p{L}]{4,}/gu) || [])) {
+        if (STOP.has(tok)) continue;
+        tokenCount.set(tok, (tokenCount.get(tok) || 0) + 1);
+      }
+      for (const m of c.msgs) {
+        const w = words(m.text);
+        if (m.human) {
+          humanMsgs++; humanWords += w;
+          hours[m.t.getHours()]++; week[(m.t.getDay() + 6) % 7]++;
+          days.add(dayKey(m.t));
+          const mo = m.t.getMonth(), dd = m.t.getDate(), hh = m.t.getHours();
+          if ((mo === 11 && dd === 31 && hh >= 22) || (mo === 0 && dd === 1 && hh < 3)) newYear = true;
+          if (m.t.getDay() === 5 && dd === 13) fri13 = true;
+          const mk = `${m.t.getFullYear()}-${m.t.getMonth()}`;
+          months.set(mk, (months.get(mk) || 0) + 1);
+        } else { aiMsgs++; aiWords += w; }
+        if (!first || m.t < first) first = m.t;
+        if (!last || m.t > last) last = m.t;
+      }
+    }
+    // longest streak of consecutive active days
+    const sorted = [...days].sort();
+    let streak = sorted.length ? 1 : 0, run = 1;
+    for (let i = 1; i < sorted.length; i++) {
+      const diff = Math.round((new Date(sorted[i]) - new Date(sorted[i - 1])) / 864e5);
+      run = diff === 1 ? run + 1 : 1;
+      if (run > streak) streak = run;
+    }
+    const peakHour = hours.indexOf(Math.max(...hours));
+    const peakDay = week.indexOf(Math.max(...week));
+    let bestMonth = null, bestMonthN = 0;
+    for (const [k, n] of months) if (n > bestMonthN) { bestMonth = k; bestMonthN = n; }
+    const [by, bm] = bestMonth ? bestMonth.split("-").map(Number) : [0, 0];
+    const topics = [...tokenCount.entries()].filter(([, n]) => n > 1 || tokenCount.size < 12).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const archKey = Object.entries(archScore).sort((a, b) => b[1] - a[1])[0];
+    const arch = archKey && archKey[1] > 0 ? ARCH.find((a) => a.key === archKey[0]) : { title: "Универсал", line: "Код, тексты, идеи, вопросы обо всём: ты пробуешь Claude во всём подряд." };
+    // Time saved: Claude's words written by hand at ~20 words/minute (drafting + looking things up).
+    const savedHours = aiWords / 20 / 60;
+    const badges = [];
+    if (peakHour < 5) badges.push(["🦉", "Ночной клуб", "Твой пиковый час — глубокой ночью"]);
+    if (streak >= 30) badges.push(["🔥", "Железная серия", `${streak} дней подряд без пропусков`]);
+    else if (streak >= 7) badges.push(["🔥", "Неделя без пропусков", `${streak} дней подряд`]);
+    if (newYear) badges.push(["🎄", "Новогодняя ночь", "Писать Claude под бой курантов — сильно"]);
+    if (fri13) badges.push(["👻", "Пятница, 13-е", "Суеверия? Не слышали"]);
+    if (longest.msgs.length >= 100) badges.push(["🏃", "Марафонец", "100+ сообщений в одном чате"]);
+    if (humanWords > aiWords) badges.push(["🗣️", "Главный говорун", "Ты пишешь больше, чем Claude"]);
+    if (convs.length === 42) badges.push(["🌌", "Ровно 42", "Ответ на главный вопрос жизни, Вселенной и всего такого"]);
+    if (convs.length >= 365) badges.push(["📅", "Чат в день", "365+ разговоров"]);
+    return {
+      chats: convs.length, humanMsgs, aiMsgs, humanWords, aiWords, first, last,
+      activeDays: days.size, streak, hours, week, peakHour, peakDay,
+      bestMonth: bestMonth ? `${MONTHS[bm]} ${by}` : "—", bestMonthN,
+      topics, longest: { name: longest.name, n: longest.msgs.length }, arch, savedHours, badges,
+    };
+  }
+
+  /* ---------- sample data (clearly fake) ---------- */
+  function sampleConvs() {
+    let seed = 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const names = [
+      "Хук для Reels про римскую еду", "Сценарий What If: мир без луны", "Промпты для Higgsfield: миниатюрный город",
+      "Идеи для видео на неделю", "Сценарий Reels: как жили викинги", "Карусель про ИИ-инструменты",
+      "Ошибка в скрипте Python", "Описание канала YouTube", "Хук для Shorts: что если исчезнет интернет",
+      "План контента на месяц", "Промпты для Nano Banana", "Сценарий мини-драмы", "Перевод субтитров",
+      "Сценарий видео про динозавров", "Названия для Shorts", "Подписи и хэштеги для Reels",
+    ];
+    const convs = [];
+    const start = new Date(2025, 10, 3);
+    for (let i = 0; i < 148; i++) {
+      const day = new Date(start.getTime() + Math.floor(rnd() * 360) * 864e5);
+      const hour = rnd() < .62 ? 20 + Math.floor(rnd() * 4) : 10 + Math.floor(rnd() * 10);
+      day.setHours(hour % 24, Math.floor(rnd() * 60));
+      const len = 2 + Math.floor(rnd() * (i === 41 ? 1 : 14)) * 2 + (i === 41 ? 102 : 0);
+      const msgs = [];
+      for (let j = 0; j < len; j++) {
+        const human = j % 2 === 0;
+        const n = human ? 12 + Math.floor(rnd() * 50) : 160 + Math.floor(rnd() * 420);
+        msgs.push({ human, t: new Date(day.getTime() + j * 90e3), text: "слово ".repeat(n) });
+      }
+      convs.push({ name: names[i % names.length], created: day, msgs });
+    }
+    const ny = new Date(2025, 11, 31, 23, 41);
+    convs.push({ name: "Тост на Новый год", created: ny, msgs: [
+      { human: true, t: ny, text: "слово ".repeat(14) }, { human: false, t: new Date(ny.getTime() + 60e3), text: "слово ".repeat(180) },
+    ] });
+    return convs;
+  }
+
+  /* ---------- slides ---------- */
+  const THEMES = [
+    { bg: "#2f3fe3", fg: "#f3efe6" }, { bg: "#ff7a1a", fg: "#12101a" }, { bg: "#bff0d4", fg: "#12101a" },
+    { bg: "#3b1540", fg: "#f2e94e" }, { bg: "#f2e94e", fg: "#12101a" }, { bg: "#12101a", fg: "#ff7a1a" },
+    { bg: "#ff5f7e", fg: "#12101a" }, { bg: "#f3efe6", fg: "#2f3fe3" }, { bg: "#2f3fe3", fg: "#f2e94e" },
+    { bg: "#ff7a1a", fg: "#12101a" },
+  ];
+  function chronotype(h) {
+    if (h >= 5 && h < 11) return ["Жаворонок", "Твои лучшие идеи приходят до обеда."];
+    if (h >= 11 && h < 18) return ["Дневной режим", "Ты работаешь с Claude в разгар дня, как с коллегой."];
+    if (h >= 18 && h < 23) return ["Вечерний творец", "Главное начинается, когда день заканчивается."];
+    return ["Ночная сова", "Пока все спят, вы с Claude что-то придумываете."];
+  }
+  function buildSlides(s) {
+    const novels = s.aiWords / 80000, pages = s.humanWords / 300;
+    const [chronoTitle, chronoLine] = chronotype(s.peakHour);
+    const night = s.peakHour >= 18 || s.peakHour < 5;
+    const maxH = Math.max(...s.hours, 1), maxW = Math.max(...s.week, 1);
+    const period = s.first && s.last ? `${dateRu(s.first)} — ${dateRu(s.last)}` : "";
+    const dayName = DAYS[(s.peakDay + 1) % 7];
+    const num = (n) => `<span data-to="${Math.round(n)}">${fmt(n)}</span>`;
+    const T = THEMES;
+    const list = [
+      { theme: T[0], motif: "bubbles", html: () => `<div class="stack"><div class="kicker">${esc(period)}</div><div class="mid">Вот как прошло твоё время с&nbsp;Claude</div></div>
+             <div class="big">${num(s.activeDays)}</div>
+             <div class="stack"><div class="txt">${plural(s.activeDays, "день", "дня", "дней")}, когда в чате было хотя бы одно твоё сообщение. Листай дальше.</div></div>` },
+      { theme: T[1], motif: "rings", html: () => `<div class="kicker">Разговоры</div>
+             <div class="stack"><div class="big">${num(s.chats)}</div><div class="mid">${plural(s.chats, "чат", "чата", "чатов")}</div></div>
+             <div class="txt">В них ${fmt(s.humanMsgs)} ${plural(s.humanMsgs, "твоё сообщение", "твоих сообщения", "твоих сообщений")} и ${fmt(s.aiMsgs)} ${plural(s.aiMsgs, "ответ", "ответа", "ответов")} Claude.</div>` },
+      { theme: T[2], motif: "letters", html: () => `<div class="kicker">Слова</div>
+             <div class="stack"><div class="big">${num(s.aiWords)}</div><div class="mid">${plural(s.aiWords, "слово", "слова", "слов")} написал для тебя Claude</div></div>
+             <div class="stack"><div class="txt">Это ≈ ${novels >= 1 ? novels.toFixed(1).replace(".", ",") + " романа" : Math.max(1, Math.round(novels * 100)) + "% романа"}. А твоих слов ${fmt(s.humanWords)}, примерно ${fmt(Math.max(1, pages))} ${plural(Math.max(1, pages), "страница", "страницы", "страниц")} книги.</div><div class="fine">Средний роман ≈ 80 000 слов, страница ≈ 300 слов</div></div>` },
+      { theme: T[3], motif: night ? "stars" : "rays", html: () => `<div class="kicker">Твой ритм</div>
+             <div class="stack"><div class="mid">${chronoTitle}</div><div class="txt">${chronoLine} Чаще всего ты пишешь около <b>${String(s.peakHour).padStart(2, "0")}:00</b>.</div></div>
+             <div><div class="hours">${s.hours.map((n, i) => `<span class="${i === s.peakHour ? "peak" : ""}" style="--i:${i};height:${Math.max(3, (n / maxH) * 100)}%"></span>`).join("")}</div>
+             <div class="hours-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div></div>` },
+      { theme: T[4], motif: "squares", html: () => `<div class="kicker">Неделя</div>
+             <div class="stack"><div class="mid">Твой день: ${dayName}</div><div class="txt">В ${DAYS_ACC[(s.peakDay + 1) % 7]} ты пишешь Claude чаще всего. Рекордная серия: <b>${fmt(s.streak)} ${plural(s.streak, "день", "дня", "дней")} подряд</b>.</div></div>
+             <div class="week">${s.week.map((n, i) => `<div><span style="--i:${i};opacity:${(0.18 + 0.82 * (n / maxW)).toFixed(2)}"></span>${DAYS_SHORT[i]}</div>`).join("")}</div>` },
+      { theme: T[5], motif: "bubbles", html: () => `<div class="kicker">Главные темы</div>
+             ${s.topics.length ? `<ol class="rank">${s.topics.map(([w, n], i) => `<li style="--i:${i}"><small>${i + 1}</small><span>${esc(w)}</span><small>×${n}</small></li>`).join("")}</ol>` : `<div class="mid">Темы слишком разные, чтобы выбрать главную</div>`}
+             <div class="fine">Самые частые слова в названиях чатов</div>` },
+      { theme: T[6], motif: "rings", html: () => `<div class="kicker">Самый длинный разговор</div>
+             <div class="stack"><div class="big">${num(s.longest.n)}</div><div class="txt">${plural(s.longest.n, "сообщение", "сообщения", "сообщений")} в одном чате:</div></div>
+             <div class="mid">«${esc(s.longest.name.length > 70 ? s.longest.name.slice(0, 68) + "…" : s.longest.name)}»</div>` },
+      { theme: T[7], motif: "squares", html: () => `<div class="kicker">Самый активный месяц</div>
+             <div class="stack"><div class="mid" style="text-transform:capitalize">${esc(s.bestMonth)}</div><div class="big">${num(s.bestMonthN)}</div></div>
+             <div class="txt">${plural(s.bestMonthN, "сообщение", "сообщения", "сообщений")} за один месяц. Похоже, тогда шёл большой проект.</div>` },
+      { theme: T[8], motif: "confetti", html: () => `<div class="kicker">Твой тип</div>
+             <div class="big letters" style="font-size:clamp(44px,14vw,72px)">${esc(s.arch.title)}</div>
+             <div class="txt">${esc(s.arch.line)}</div>` },
+    ];
+    if (s.badges.length) list.push({ theme: { bg: "#12101a", fg: "#f2e94e" }, motif: "stars", egg: "secret", html: () => `<div class="stack"><div class="kicker">Секретная карточка 🤫</div><div class="mid">Твои тайные достижения</div></div>
+             <ul class="badges">${s.badges.slice(0, 5).map((b, i) => `<li style="--i:${i};--r:${[-3, 2, -1.5, 3, -2][i]}deg"><span class="em" aria-hidden="true">${b[0]}</span><span><b>${esc(b[1])}</b><small>${esc(b[2])}</small></span></li>`).join("")}</ul>
+             <div class="fine">Эта карточка появляется не у всех</div>` });
+    list.push({ theme: T[9], motif: "confetti", html: () => `<div class="stack"><div class="kicker">Компромат · итог</div><div class="mid">${esc(s.arch.title)}</div></div>
+             <div class="sum">
+               <div style="--i:0"><b>${num(s.chats)}</b><small>чатов</small></div>
+               <div style="--i:1"><b>${num(s.activeDays)}</b><small>активных дней</small></div>
+               <div style="--i:2"><b>${num(s.aiWords)}</b><small>слов от Claude</small></div>
+               <div style="--i:3"><b>${num(s.streak)}</b><small>дней подряд</small></div>
+               <div style="--i:4"><b>${String(s.peakHour).padStart(2, "0")}:00</b><small>пиковый час</small></div>
+               <div style="--i:5"><b>≈${num(s.savedHours)} ч</b><small>сэкономлено</small></div>
+             </div>
+             <div class="stack"><div class="fine">Экономия: слова Claude, написанные вручную со скоростью ≈ 20 слов в минуту. Это оценка, а не точный замер.</div>${CREATOR.handle ? `<div class="kicker">Свой компромат → ссылка в ${esc(CREATOR.handle)}</div>` : ""}</div>` });
+    return list;
+  }
+
+  /* ---------- PNG of the summary card (drawn by hand, no libraries) ---------- */
+  async function renderPNG(s) {
+    const W = 1080, H = 1920, P = 90, th = THEMES[9]; // same colors as the summary card
+    try { await Promise.all(['900 100px "Unbounded"', '400 40px "Onest"', '600 30px "JetBrains Mono"'].map((f) => document.fonts.load(f))); } catch {}
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const x = c.getContext("2d");
+    const DISPLAY = '"Unbounded", "Arial Black", sans-serif', BODY = '"Onest", system-ui, sans-serif', MONO = '"JetBrains Mono", monospace';
+    const spaced = (txt, px, y, font, sp) => { x.font = font; let cx = px; for (const ch of txt) { x.fillText(ch, cx, y); cx += x.measureText(ch).width + sp; } return cx; };
+    const wrap = (txt, maxW) => { const out = []; let line = ""; for (const w of txt.split(" ")) { const t = line ? line + " " + w : w; if (x.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; } if (line) out.push(line); return out; };
+    x.fillStyle = th.bg; x.fillRect(0, 0, W, H);
+    x.fillStyle = th.fg; x.textBaseline = "alphabetic";
+    // header
+    spaced((BRAND + (CREATOR.handle ? " · " + CREATOR.handle : "")).toUpperCase(), P, P + 30, `600 30px ${MONO}`, 4);
+    if (isSample) {
+      x.font = `600 28px ${MONO}`; const bw = x.measureText("ПРИМЕР").width + 60;
+      x.fillRect(W - P - bw, P - 8, bw, 52); x.fillStyle = th.bg; spaced("ПРИМЕР", W - P - bw + 22, P + 28, `600 28px ${MONO}`, 3); x.fillStyle = th.fg;
+    }
+    if (s.first && s.last) { x.globalAlpha = .75; spaced(`${dateRu(s.first)} — ${dateRu(s.last)}`.toUpperCase(), P, P + 90, `400 26px ${MONO}`, 2); x.globalAlpha = 1; }
+    // archetype
+    x.globalAlpha = .8; spaced("МОЙ ТИП", P, 400, `600 30px ${MONO}`, 4); x.globalAlpha = 1;
+    let size = 150; x.font = `900 ${size}px ${DISPLAY}`;
+    while (x.measureText(s.arch.title).width > W - 2 * P && size > 70) { size -= 6; x.font = `900 ${size}px ${DISPLAY}`; }
+    x.fillText(s.arch.title, P, 400 + size + 10);
+    x.font = `400 42px ${BODY}`;
+    wrap(s.arch.line, W - 2 * P).slice(0, 4).forEach((l, i) => x.fillText(l, P, 400 + size + 100 + i * 56));
+    // stats grid
+    const cells = [
+      [fmt(s.chats), plural(s.chats, "чат", "чата", "чатов")], [fmt(s.activeDays), "активных дней"],
+      [fmt(s.aiWords), "слов от Claude"], [fmt(s.streak), "дней подряд"],
+      [String(s.peakHour).padStart(2, "0") + ":00", "пиковый час"], ["≈" + fmt(s.savedHours) + " ч", "сэкономлено"],
+    ];
+    const gx = (W - 2 * P - 40) / 2, top = 1030, rowH = 205;
+    cells.forEach(([v, label], i) => {
+      const cx = P + (i % 2) * (gx + 40), cy = top + Math.floor(i / 2) * rowH;
+      x.globalAlpha = .35; x.fillRect(cx, cy, gx, 3); x.globalAlpha = 1;
+      let vs = 92; x.font = `900 ${vs}px ${DISPLAY}`;
+      while (x.measureText(v).width > gx - 36 && vs > 40) { vs -= 4; x.font = `900 ${vs}px ${DISPLAY}`; }
+      x.fillText(v, cx, cy + 30 + vs * .85);
+      x.globalAlpha = .8; spaced(label.toUpperCase(), cx, cy + 30 + 92 * .85 + 48, `600 26px ${MONO}`, 2); x.globalAlpha = 1;
+    });
+    // footer
+    x.globalAlpha = .7; x.font = `400 24px ${MONO}`;
+    wrap("Экономия — оценка: слова Claude, написанные вручную со скоростью ≈ 20 слов в минуту.", W - 2 * P).forEach((l, i) => x.fillText(l, P, 1700 + i * 32));
+    x.globalAlpha = 1;
+    const cta = CREATOR.handle ? `Свой компромат → ссылка в ${CREATOR.handle}` : "Собери свой компромат";
+    x.font = `700 36px ${BODY}`; x.fillText(cta, P, H - P);
+    return c;
+  }
+  // В артефакте claude.ai скачивание идёт через платформу; на своём сайте работает обычная ссылка.
+  const dlReady = window.claude && typeof window.claude.use === "function" ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null);
+  let lastBlob = null;
+
+  /* ---------- player ---------- */
+  const DURATION = 6500;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let slides = [], idx = 0, startedAt = 0, elapsed = 0, paused = false, raf = 0, isSample = true, stats = null;
+  const story = $("story"), slideEl = $("slide"), bars = $("bars");
+
+  // Circular reveal from the tap point: new color and new text grow together over a frozen copy of the old card.
+  let wipeAnim = null, slideAnim = null, ghost = null, curBg = null, curFg = null;
+  function stopWipe() {
+    if (wipeAnim) { wipeAnim.cancel(); wipeAnim = null; }
+    if (slideAnim) { slideAnim.cancel(); slideAnim = null; }
+    if (ghost) { ghost.remove(); ghost = null; }
+    $("wipe").style.background = "transparent";
+    if (curBg) story.style.background = curBg;
+  }
+  function transition(th, ox, oy, fill) {
+    const animate = !reduce && curBg !== null && ox !== undefined && !!slideEl.animate;
+    stopWipe();
+    if (animate) {
+      ghost = slideEl.cloneNode(true); ghost.removeAttribute("id"); ghost.className = "slide ghost"; ghost.style.color = curFg;
+      story.insertBefore(ghost, $("wipe"));
+    }
+    fill();
+    story.style.color = th.fg; story.style.setProperty("--story-bg", th.bg);
+    if (animate) {
+      const R = Math.hypot(Math.max(ox, story.clientWidth - ox), Math.max(oy, story.clientHeight - oy)) + 4;
+      const kf = [{ clipPath: `circle(0px at ${ox}px ${oy}px)` }, { clipPath: `circle(${R}px at ${ox}px ${oy}px)` }];
+      const opt = { duration: 650, easing: "cubic-bezier(.65,0,.25,1)" };
+      $("wipe").style.background = th.bg;
+      const a = $("wipe").animate(kf, opt); wipeAnim = a; slideAnim = slideEl.animate(kf, opt);
+      a.onfinish = () => { if (wipeAnim !== a) return; wipeAnim = null; slideAnim = null; story.style.background = th.bg; $("wipe").style.background = "transparent"; if (ghost) { ghost.remove(); ghost = null; } };
+    } else story.style.background = th.bg;
+    curBg = th.bg; curFg = th.fg;
+  }
+  // Big numbers count up from zero.
+  function countUp(root) {
+    if (reduce) return;
+    root.querySelectorAll("[data-to]").forEach((el) => {
+      const to = +el.dataset.to, t0 = performance.now(), dur = 1000 + Math.min(900, String(to).length * 110);
+      el.textContent = "0";
+      const step = (t) => {
+        if (!el.isConnected) return;
+        const p = Math.min(1, (t - t0) / dur);
+        el.textContent = fmt(p >= 1 ? to : to * (1 - Math.pow(2, -10 * p)));
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  // Headlines rise word by word; the type title drops letter by letter.
+  function enhance(root) {
+    if (reduce) return;
+    root.querySelectorAll(".mid").forEach((el) => {
+      if (el.children.length) return;
+      const parts = el.textContent.split(" ");
+      el.innerHTML = parts.map((w, i) => `<span class="w"><span style="--i:${i}">${esc(w)}</span></span>`).join(" ");
+    });
+    root.querySelectorAll(".letters").forEach((el) => {
+      el.innerHTML = [...el.textContent].map((c, i) => `<span class="ch" style="--i:${i}">${esc(c)}</span>`).join("");
+    });
+  }
+
+  function render(ox, oy) {
+    const sl = slides[idx], th = sl.theme;
+    transition(th, ox, oy, () => {
+      slideEl.className = "slide" + (reduce ? "" : " anim");
+      slideEl.innerHTML = sl.html();
+      enhance(slideEl); countUp(slideEl);
+    });
+    startMotif(sl.motif, th.fg);
+    [...bars.children].forEach((b, i) => { b.classList.toggle("done", i < idx); b.firstChild.style.width = i < idx ? "100%" : "0"; });
+    $("tagL").textContent = BRAND + (CREATOR.handle ? " · " + CREATOR.handle : "");
+    $("tagR").innerHTML = isSample ? `<span class="sample"><b>Пример</b></span>` : `${idx + 1} / ${slides.length}`;
+    if (sl.egg && !found.has(sl.egg)) setTimeout(() => egg(sl.egg, "Секретная карточка открыта 🤫"), 900);
+    elapsed = 0; startedAt = performance.now();
+  }
+  function tick(now) {
+    if (!paused && slides.length) {
+      const p = Math.min(1, (elapsed + now - startedAt) / DURATION);
+      const bar = bars.children[idx]; if (bar) bar.firstChild.style.width = (p * 100) + "%";
+      if (p >= 1) { if (idx < slides.length - 1) { idx++; render(story.clientWidth / 2, story.clientHeight); } else { setPaused(true); } }
+    }
+    try { drawMotif(now); drawPage(); } catch (err) { motif = ""; pparts = []; }
+    raf = requestAnimationFrame(tick);
+  }
+  function setPaused(v) {
+    if (v && !paused) elapsed += performance.now() - startedAt;
+    if (!v && paused) startedAt = performance.now();
+    paused = v; $("pause").textContent = v ? "Смотреть" : "Пауза";
+  }
+  function go(d, ox, oy) {
+    const n = idx + d;
+    idx = n < 0 || n >= slides.length ? 0 : n;
+    if (ox === undefined) { ox = story.clientWidth * (d < 0 ? 0.1 : 0.9); oy = story.clientHeight * 0.5; }
+    render(ox, oy); if (paused && d) setPaused(false);
+  }
+  function load(s, sample) {
+    stats = s; isSample = sample; slides = buildSlides(s); idx = 0;
+    bars.innerHTML = slides.map(() => "<span><i></i></span>").join("");
+    $("source").textContent = sample
+      ? "Сейчас показан пример с выдуманными данными. Загрузи свой экспорт, чтобы увидеть свои цифры. Карточку удобно сохранить скриншотом."
+      : `Твои данные: ${fmt(s.chats)} ${plural(s.chats, "чат", "чата", "чатов")} из экспорта. Сохрани любую карточку скриншотом и выложи в сторис.`;
+    $("own").hidden = !sample; $("png").classList.toggle("hot", !sample);
+    paused = false; $("pause").textContent = "Пауза"; render(curBg === null ? undefined : story.clientWidth / 2, story.clientHeight / 2);
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
+  }
+
+  // Tap: left third goes back, the rest forward. Hold: pause, like Instagram stories.
+  let holdT = 0, held = false, holdWasPaused = false;
+  story.addEventListener("pointerdown", (e) => {
+    if (e.button) return;
+    held = false; clearTimeout(holdT);
+    holdT = setTimeout(() => { held = true; holdWasPaused = paused; setPaused(true); story.classList.add("held"); }, 280);
+  });
+  const endHold = () => { clearTimeout(holdT); if (held) { setPaused(holdWasPaused); story.classList.remove("held"); } };
+  ["pointerup", "pointercancel", "pointerleave"].forEach((t) => story.addEventListener(t, endHold));
+  story.addEventListener("click", (e) => {
+    if (held) { held = false; return; }
+    if (e.target.closest("#tagL")) return;
+    const r = story.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    go(x < r.width * 0.33 ? -1 : 1, x, y);
+  });
+  story.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); go(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+  });
+  // Gentle 3D tilt with a glare that follows the mouse.
+  if (!reduce && matchMedia("(pointer: fine)").matches) {
+    story.addEventListener("pointermove", (e) => {
+      const r = story.getBoundingClientRect(), dx = (e.clientX - r.left) / r.width - 0.5, dy = (e.clientY - r.top) / r.height - 0.5;
+      story.style.transform = `perspective(1000px) rotateX(${(-dy * 7).toFixed(2)}deg) rotateY(${(dx * 9).toFixed(2)}deg)`;
+      story.style.setProperty("--gx", ((dx + 0.5) * 100).toFixed(1) + "%"); story.style.setProperty("--gy", ((dy + 0.5) * 100).toFixed(1) + "%"); story.style.setProperty("--glare", "1");
+    });
+    story.addEventListener("pointerleave", () => { story.style.transform = ""; story.style.setProperty("--glare", "0"); });
+  }
+  $("prev").onclick = () => go(-1);
+  $("next").onclick = () => go(1);
+  $("pause").onclick = () => setPaused(!paused);
+  $("demo").onclick = () => { load(computeStats(sampleConvs()), true); status("Показан пример с выдуманными данными."); };
+  $("copy").onclick = async () => {
+    if (!stats) return;
+    const s = stats;
+    const text = `Мой компромат за год с ИИ${isSample ? " (пример)" : ""}:\n• ${fmt(s.chats)} чатов, ${fmt(s.activeDays)} активных дней\n• Claude написал для меня ${fmt(s.aiWords)} слов\n• Рекордная серия: ${fmt(s.streak)} дн. подряд\n• Пиковый час: ${String(s.peakHour).padStart(2, "0")}:00\n• Мой тип: ${s.arch.title}\n• Сэкономлено ≈ ${fmt(s.savedHours)} ч${CREATOR.handle ? `\nСобери свой: ссылка в ${CREATOR.handle}` : ""}`;
+    try { await navigator.clipboard.writeText(text); status("Итоги скопированы. Вставь их в пост или сообщение."); }
+    catch { status("Не получилось скопировать автоматически. Сделай скриншот последней карточки.", true); }
+  };
+
+  let wasPaused = false;
+  $("png").onclick = async () => {
+    if (!stats) return;
+    wasPaused = paused; setPaused(true);
+    try {
+      const canvas = await renderPNG(stats);
+      const url = canvas.toDataURL("image/png");
+      lastBlob = await new Promise((r) => canvas.toBlob(r, "image/png"));
+      $("png-img").src = url; $("png-dl").href = url;
+      $("modal").hidden = false; $("png-dl").focus();
+    } catch { status("Не получилось нарисовать картинку. Сделай скриншот последней карточки.", true); setPaused(wasPaused); }
+  };
+  const closeModal = () => { $("modal").hidden = true; setPaused(wasPaused); $("png").focus(); };
+  $("png-close").onclick = closeModal;
+  $("png-dl").addEventListener("click", async (e) => {
+    const dl = await Promise.race([dlReady, new Promise((r) => setTimeout(() => r(null), 300))]);
+    if (!dl || !lastBlob) return; // обычная ссылка download
+    e.preventDefault();
+    try { await dl.save({ filename: "kompromat.png", data: lastBlob }); $("modal-title").textContent = "Картинка сохранена. Выкладывай в сторис!"; }
+    catch (err) { if (err && err.code !== "declined") $("modal-title").textContent = "Скачать не получилось. Зажми картинку и выбери «Сохранить изображение»."; }
+  });
+  $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
+
+  function status(msg, err) { const el = $("status"); el.textContent = msg; el.classList.toggle("err", !!err); }
+
+  async function readFile(file) {
+    status(`Читаю «${file.name}»…`);
+    try {
+      let text;
+      if (/\.zip$/i.test(file.name) || file.type.includes("zip")) {
+        if (!window.JSZip) throw new Error("Не загрузился модуль для ZIP. Распакуй архив и загрузи conversations.json.");
+        const zip = await JSZip.loadAsync(file);
+        const entry = Object.values(zip.files).find((f) => /(^|\/)conversations\.json$/i.test(f.name));
+        if (!entry) throw new Error("В архиве нет conversations.json. Убедись, что это экспорт из claude.ai.");
+        text = await entry.async("string");
+      } else {
+        text = await file.text();
+      }
+      let raw;
+      try { raw = JSON.parse(text); } catch { throw new Error("Файл не похож на JSON. Нужен conversations.json или ZIP из письма Claude."); }
+      const s = computeStats(normalize(raw));
+      load(s, false);
+      status(`Готово: ${fmt(s.chats)} ${plural(s.chats, "чат", "чата", "чатов")}, ${fmt(s.humanMsgs + s.aiMsgs)} ${plural(s.humanMsgs + s.aiMsgs, "сообщение", "сообщения", "сообщений")}.`);
+      if (matchMedia("(max-width: 860px)").matches) story.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+    } catch (e) { status(e.message || "Не получилось прочитать файл.", true); }
+  }
+  $("file").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) readFile(f); e.target.value = ""; });
+  const drop = $("drop");
+  ["dragenter", "dragover"].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); if (t === "drop" || e.target === document.documentElement) drop.classList.remove("over"); }));
+  document.addEventListener("drop", (e) => { const f = e.dataTransfer?.files?.[0]; if (f) readFile(f); });
+
+  /* ---------- particles inside the story card ---------- */
+  const fxIn = $("fxin"), fx = fxIn.getContext("2d");
+  const PAL = ["#2f3fe3", "#ff7a1a", "#bff0d4", "#f2e94e", "#ff5f7e", "#f3efe6", "#3b1540"];
+  const rand = (a, b) => a + Math.random() * (b - a);
+  let parts = [], motif = "", motifT0 = 0, ink = "#fff";
+  function sizeCanvas(cv, w, h) {
+    const d = Math.min(2, window.devicePixelRatio || 1), W = Math.round(w * d), H = Math.round(h * d);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    return d;
+  }
+  function burst(x0, y0, n, d, list) {
+    for (let i = 0; i < n; i++) {
+      const ang = rand(-Math.PI * 0.85, -Math.PI * 0.15), sp = rand(5, 15) * d;
+      list.push({ k: "c", x: x0, y: y0, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, w: rand(5, 10) * d, h: rand(8, 15) * d, rot: rand(0, 6), vr: rand(-0.25, 0.25), c: PAL[i % PAL.length], g: 0.3 * d });
+    }
+  }
+  function startMotif(m, color) {
+    motif = m; ink = color; parts = []; motifT0 = performance.now();
+    if (reduce) return;
+    const d = sizeCanvas(fxIn, story.clientWidth, story.clientHeight), W = fxIn.width, H = fxIn.height;
+    if (m === "bubbles") for (let i = 0; i < 14; i++) parts.push({ x: rand(0, W), y: rand(0, H), r: rand(6, 46) * d, v: rand(0.15, 0.5) * d, ph: rand(0, 6.28), a: rand(0.07, 0.16) });
+    if (m === "letters") for (let i = 0; i < 22; i++) parts.push({ x: rand(0, W), y: rand(-H, H), s: rand(14, 44) * d, v: rand(0.3, 0.9) * d, rot: rand(-0.5, 0.5), vr: rand(-0.004, 0.004), ch: "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ"[Math.floor(rand(0, 27))], a: rand(0.07, 0.15) });
+    if (m === "stars") for (let i = 0; i < 46; i++) parts.push({ x: rand(0, W), y: rand(0, H), r: rand(0.6, 2.2) * d, ph: rand(0, 6.28), sp: rand(0.6, 2) });
+    if (m === "squares") for (let i = 0; i < 12; i++) parts.push({ x: rand(0, W), y: rand(0, H), s: rand(10, 34) * d, vx: rand(-0.3, 0.3) * d, vy: rand(-0.3, 0.3) * d, rot: rand(0, 6), vr: rand(-0.01, 0.01), a: rand(0.08, 0.16) });
+    if (m === "confetti") burst(W / 2, H * 0.98, 150, d, parts);
+  }
+  function drawConfetti(ctx, p) {
+    p.vy += p.g; p.vx *= 0.985; p.vy *= 0.99; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+    ctx.globalAlpha = 1; ctx.fillStyle = p.c;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.rot * 1.7)) + 1); ctx.restore();
+  }
+  function drawMotif(now) {
+    if (reduce || !motif) return;
+    const d = sizeCanvas(fxIn, story.clientWidth, story.clientHeight), W = fxIn.width, H = fxIn.height, t = Math.max(0, (now - motifT0) / 1000);
+    fx.clearRect(0, 0, W, H); fx.fillStyle = ink; fx.strokeStyle = ink;
+    if (motif === "rings") for (let k = 0; k < 4; k++) {
+      const p = (t * 0.3 + k / 4) % 1; fx.globalAlpha = (1 - p) * 0.22; fx.lineWidth = 2 * d;
+      fx.beginPath(); fx.arc(W * 0.82, H * 0.8, p * W * 0.95, 0, 6.283); fx.stroke();
+    }
+    if (motif === "rays") {
+      fx.save(); fx.translate(W * 0.92, H * 0.1); fx.rotate(t * 0.12); fx.globalAlpha = 0.09;
+      for (let k = 0; k < 14; k++) { fx.rotate(6.283 / 14); fx.beginPath(); fx.moveTo(0, 0); fx.lineTo(W * 1.5, -W * 0.07); fx.lineTo(W * 1.5, W * 0.07); fx.closePath(); fx.fill(); }
+      fx.restore();
+    }
+    if (motif === "stars") { // a shooting star every few seconds
+      const st = t % 4.5;
+      if (st < 0.8) {
+        const x = W * (0.15 + st * 0.9), y = H * (0.08 + st * 0.25), g = fx.createLinearGradient(x, y, x - 90 * d, y - 30 * d);
+        g.addColorStop(0, ink); g.addColorStop(1, "transparent");
+        fx.globalAlpha = 0.8 * (1 - st / 0.8); fx.strokeStyle = g; fx.lineWidth = 2 * d;
+        fx.beginPath(); fx.moveTo(x, y); fx.lineTo(x - 90 * d, y - 30 * d); fx.stroke(); fx.strokeStyle = ink;
+      }
+    }
+    for (const p of parts) {
+      if (p.k === "c") { if (p.y < H + 40 * d) drawConfetti(fx, p); continue; }
+      if (motif === "bubbles") {
+        p.y -= p.v; p.x += Math.sin(t + p.ph) * 0.3 * d; if (p.y < -p.r) { p.y = H + p.r; p.x = rand(0, W); }
+        fx.globalAlpha = p.a; fx.beginPath(); fx.arc(p.x, p.y, p.r, 0, 6.283); fx.fill();
+      } else if (motif === "letters") {
+        p.y += p.v; p.rot += p.vr; if (p.y > H + p.s) { p.y = -p.s; p.x = rand(0, W); }
+        fx.globalAlpha = p.a; fx.font = `900 ${p.s}px Unbounded, sans-serif`;
+        fx.save(); fx.translate(p.x, p.y); fx.rotate(p.rot); fx.fillText(p.ch, 0, 0); fx.restore();
+      } else if (motif === "stars") {
+        fx.globalAlpha = 0.2 + 0.6 * (0.5 + 0.5 * Math.sin(t * p.sp * 2 + p.ph)); fx.beginPath(); fx.arc(p.x, p.y, p.r, 0, 6.283); fx.fill();
+      } else if (motif === "squares") {
+        p.x = (p.x + p.vx + W) % W; p.y = (p.y + p.vy + H) % H; p.rot += p.vr;
+        fx.globalAlpha = p.a; fx.save(); fx.translate(p.x, p.y); fx.rotate(p.rot); fx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); fx.restore();
+      }
+    }
+    if (parts.length > 60 && parts[0].k === "c" && t > 6) parts = parts.filter((p) => p.y < H + 40 * d);
+    fx.globalAlpha = 1;
+  }
+
+  /* ---------- page layer: seasonal weather + confetti rain ---------- */
+  const pfx = $("fx"), pc = pfx.getContext("2d");
+  let pparts = [], season = "";
+  const today = new Date();
+  if (today.getMonth() === 9 && today.getDate() === 31) season = "halloween";
+  else if (today.getMonth() === 11 || (today.getMonth() === 0 && today.getDate() <= 10)) season = "snow";
+  function seasonInit() {
+    if (reduce || !season) return;
+    const d = sizeCanvas(pfx, innerWidth, innerHeight), W = pfx.width, H = pfx.height;
+    const n = season === "snow" ? 70 : 12;
+    for (let i = 0; i < n; i++) pparts.push({ k: season, x: rand(0, W), y: rand(-H, H), r: rand(1, 3.2) * d, v: rand(0.4, 1.3) * d, ph: rand(0, 6.28), s: rand(16, 30) * d, ch: ["🎃", "🦇", "👻"][i % 3] });
+  }
+  function rain() {
+    if (reduce) return;
+    const d = sizeCanvas(pfx, innerWidth, innerHeight), W = pfx.width, H = pfx.height;
+    for (let i = 0; i < 200; i++) pparts.push({ k: "c", x: rand(0, W), y: rand(-H * 0.6, -10), vx: rand(-1, 1) * d, vy: rand(1, 4) * d, w: rand(6, 11) * d, h: rand(9, 16) * d, rot: rand(0, 6), vr: rand(-0.2, 0.2), c: PAL[i % PAL.length], g: 0.06 * d });
+  }
+  let pageDirty = false;
+  function drawPage() {
+    if (reduce || (!pparts.length && !pageDirty)) return;
+    sizeCanvas(pfx, innerWidth, innerHeight);
+    const W = pfx.width, H = pfx.height, t = performance.now() / 1000;
+    pc.clearRect(0, 0, W, H); pageDirty = pparts.length > 0;
+    for (const p of pparts) {
+      if (p.k === "c") { drawConfetti(pc, p); continue; }
+      p.y += p.v; p.x += Math.sin(t + p.ph) * 0.5; if (p.y > H + 30) { p.y = -30; p.x = rand(0, W); }
+      if (p.k === "snow") { pc.globalAlpha = 0.55; pc.fillStyle = "#f3efe6"; pc.beginPath(); pc.arc(p.x, p.y, p.r, 0, 6.283); pc.fill(); }
+      else { pc.globalAlpha = 0.35; pc.font = `${p.s}px serif`; pc.fillText(p.ch, p.x, p.y); }
+    }
+    pc.globalAlpha = 1;
+    pparts = pparts.filter((p) => p.k !== "c" || p.y < H + 40);
+  }
+
+  /* ---------- easter eggs ---------- */
+  const EGGS = ["dot", "tickle", "retro", "hello", "night", "secret"];
+  let found = new Set();
+  try { found = new Set(JSON.parse(localStorage.getItem("cw-eggs") || "[]").filter((k) => EGGS.includes(k))); } catch {}
+  let toastEl = null, toastT = 0;
+  function toast(msg, badge) {
+    if (toastEl) toastEl.remove();
+    clearTimeout(toastT);
+    const el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status");
+    el.textContent = msg;
+    if (badge) { const b = document.createElement("small"); b.textContent = badge; el.prepend(b); }
+    document.body.append(el); toastEl = el;
+    toastT = setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 400); }, 3400);
+  }
+  function egg(key, msg) {
+    const isNew = !found.has(key);
+    found.add(key);
+    try { localStorage.setItem("cw-eggs", JSON.stringify([...found])); } catch {}
+    toast(msg, isNew ? `🥚 ${found.size} из ${EGGS.length}` : "");
+    renderEggs();
+    if (isNew && found.size === EGGS.length) setTimeout(() => { rain(); toast("Все 6 пасхалок найдены! 🏆"); }, 3600);
+  }
+  function renderEggs() {
+    $("eggs-count").textContent = `Пасхалок найдено: ${found.size} из ${EGGS.length}`;
+    $("eggs-dots").textContent = EGGS.map((k) => (found.has(k) ? "●" : "○")).join("");
+  }
+
+  // 1. The orange dot: five quick taps → confetti rain.
+  let dotN = 0, dotT = 0;
+  $("dot").addEventListener("click", () => {
+    const b = $("dot"); b.classList.remove("bump"); void b.offsetWidth; b.classList.add("bump");
+    dotN = performance.now() - dotT < 1500 ? dotN + 1 : 1; dotT = performance.now();
+    if (dotN >= 5) { dotN = 0; rain(); egg("dot", "Конфетти для тебя 🎉"); }
+  });
+  // 2. Tickle the word "Claude" ten times.
+  const em = document.querySelector("h1 em");
+  em.innerHTML = [...em.textContent].map((c, i) => `<span class="lt" style="--i:${i}">${c === " " || c === " " ? "&nbsp;" : esc(c)}</span>`).join("");
+  let tickles = 0;
+  em.addEventListener("click", () => {
+    em.classList.remove("jump"); void em.offsetWidth; em.classList.add("jump");
+    if (++tickles === 10) egg("tickle", "Хватит щекотать Claude! 😂");
+  });
+  // 3. Retro mode: the Konami code on a keyboard, or three quick taps on the card's label.
+  const KONAMI = ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"];
+  let kpos = 0, typed = "", tagN = 0, tagT = 0, retroFont = false;
+  function toggleRetro() {
+    if (!retroFont) {
+      retroFont = true;
+      const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"; document.head.append(l);
+    }
+    const on = document.body.classList.toggle("retro");
+    if (on) egg("retro", "Ретро-режим 👾 Повтори, чтобы выключить");
+    else toast("Ретро-режим выключен");
+  }
+  $("tagL").addEventListener("click", () => {
+    tagN = performance.now() - tagT < 900 ? tagN + 1 : 1; tagT = performance.now();
+    if (tagN >= 3) { tagN = 0; toggleRetro(); }
+  });
+  // 4. Type "claude" (or «клод») anywhere → the card does a flip.
+  function helloClaude() {
+    if (!reduce && story.animate) story.animate([{ transform: "perspective(1000px) rotateY(0)" }, { transform: "perspective(1000px) rotateY(360deg)" }], { duration: 1100, easing: "cubic-bezier(.5,0,.2,1)" });
+    egg("hello", "Claude передаёт привет 👋");
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.target.closest && e.target.closest("input, textarea")) return;
+    const k = e.key.toLowerCase(), kk = k === "и" ? "b" : k === "ф" ? "a" : k;
+    kpos = kk === KONAMI[kpos] ? kpos + 1 : kk === KONAMI[0] ? 1 : 0;
+    if (kpos === KONAMI.length) { kpos = 0; toggleRetro(); }
+    if (k.length === 1) typed = (typed + k).slice(-8);
+    if (/claude$|клод$/.test(typed)) { typed = ""; helloClaude(); }
+  });
+  // 5. Night visit between midnight and 5 am.
+  if (today.getHours() < 5) setTimeout(() => egg("night", "Не спится? Ночные совы — лучшие пользователи 🦉"), 2500);
+  // 6. The secret card: shown only when the stats earn a badge (see buildSlides).
+  console.log("%cПривет, разработчик 👋", "font:700 16px sans-serif;color:#ff7a1a", "\nНа странице спрятано 6 пасхалок. Подсказка: попробуй код из 80-х.");
+  renderEggs(); seasonInit();
+
+  load(computeStats(sampleConvs()), true);
+})();
+</script>
+
+</body>
+</html>
