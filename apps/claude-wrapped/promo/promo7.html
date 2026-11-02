@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Компромат — промо v7 «Участок»</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Onest:wght@500;700&family=JetBrains+Mono:wght@600&family=PT+Mono&display=swap">
+<style>html,body{margin:0;background:#000}#out{display:block;width:360px;height:640px}#c{display:none}</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script>window.SKIP_SUBS = true; window.EMBEDDED = true;</script>
+<script src="promo3.js"></script>
+<script src="voice_env.js"></script>
+<script>
+(() => {
+/* «Компромат» v7: v6 + hand props (folders, magnifier, mug, flashlight, keys, stamp, box, placard) and more action.
+   Character = rigged 2D parts (body, arms, legs) rendered in Blender; render6(t) is deterministic (60 fps export). */
+const W = 1080, H = 1920, DUR = 30;
+const out = document.getElementById("out"), x = out.getContext("2d");
+const C = { ink: "#07060a", paper: "#e6dcc6", red: "#e8322b", amber: "#ffb35c", orange: "#ff7a1a", gold: "#e0a83a" };
+const M = '"PT Mono", "JetBrains Mono", monospace', D = '"Unbounded", sans-serif';
+const clamp = (v) => Math.max(0, Math.min(1, v)), prog = (t, a, b) => clamp((t - a) / (b - a)), lerp = (a, b, p) => a + (b - a) * p;
+const oC = (p) => 1 - Math.pow(1 - p, 3), io = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const oB = (p, k = 1.7) => 1 + (k + 1) * Math.pow(p - 1, 3) + k * Math.pow(p - 1, 2);
+function rng(s) { return () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let r = Math.imul(s ^ (s >>> 15), 1 | s); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (n) => Math.round(n).toLocaleString("ru-RU").replace(/ /g, " ");
+function env(t) { const E = window.VOICE_ENV || [], f = t * 30, i = Math.floor(f); return lerp(E[i] || 0, E[i + 1] || 0, f - i); }
+const wave = (t, f, a = 1) => Math.sin(t * f * 6.283) * a;
+
+/* ---------- assets ---------- */
+const IMG = {}, LOC = {}; let RIG = null;
+const img = (key, src) => new Promise((r) => { const im = new Image(); im.onload = () => { IMG[key] = im; r(); }; im.onerror = () => r(); im.src = src; });
+const LOCS = ["office", "archive", "roof", "vault", "mugshot", "prison"];
+window.ready7 = Promise.all([
+  ...["body", "armL", "armR", "leg2", "leg4", "leg7", "leg9"].map((n) => img(n, `chief/chief_${n}.png`)),
+  ...["folder","folder_open","paper","magnifier","mug","flashlight","keys","stamp","box","placard","thick"].map((n) => img("p_" + n, `chief/props/${n}.png`)),
+  ...LOCS.map((n) => img(n, `chief_loc/${n}.png`)), img("prison_fg", "chief_loc/prison_fg.png"), img("interrogation", "noir/bg.png"),
+  fetch("chief/chief_meta.json").then((r) => r.json()).then((m) => (RIG = m)),
+  ...LOCS.map((n) => fetch(`chief_loc/${n}.json`).then((r) => r.json()).then((m) => (LOC[n] = m))),
+  fetch("noir/layers_meta.json").then((r) => r.json()).then((m) => (LOC.interrogation = { feet: m.char_feet, height_px: (m.char_feet[1] - m.char_top[1]) * 0.75 / 0.6 })),
+  window.ready, document.fonts.load('400 40px "PT Mono"', "Дело 0123"), document.fonts.load('900 40px "Unbounded"', "КОМПРОМАТ"),
+]);
+
+/* ---------- text / props ---------- */
+function T(str, px, py, o = {}) {
+  x.save(); x.globalAlpha *= o.a == null ? 1 : o.a; x.font = `${o.w || 400} ${o.size || 48}px ${o.f || M}`; x.textAlign = o.align || "left";
+  if (o.ls) x.letterSpacing = o.ls + "px"; x.translate(px, py); if (o.rot) x.rotate(o.rot); if (o.s) x.scale(o.s, o.s);
+  if (o.glow) { x.shadowColor = o.glow; x.shadowBlur = o.glowR || 30; }
+  if (o.stroke) { x.lineWidth = o.strokeW || 10; x.strokeStyle = o.stroke; x.lineJoin = "round"; x.strokeText(str, 0, 0); }
+  x.fillStyle = o.c || C.paper; x.fillText(str, 0, 0); x.restore();
+}
+const typed = (str, t, at, cps) => { const n = Math.floor(Math.max(0, t - at) * cps); return str.slice(0, n) + (n < str.length && n > 0 && Math.floor(t * 8) % 2 ? "▌" : ""); };
+const counter = (v, t, at, dur) => Math.round(v * oC(prog(t, at, at + dur)));
+function stamp(text, cx, cy, t, at, size = 100, rot = -0.08, color = C.red) {
+  const p = prog(t, at, at + 0.16); if (p <= 0) return;
+  const s = 1 + (1 - oC(p)) * 2.2; x.save(); x.translate(cx, cy); x.rotate(rot); x.scale(s, s); x.globalAlpha = Math.min(1, p * 1.5) * 0.93;
+  x.font = `900 ${size}px ${D}`; const w = x.measureText(text).width; x.strokeStyle = color; x.lineWidth = size * 0.09;
+  x.beginPath(); x.roundRect(-w / 2 - size * 0.35, -size * 0.85, w + size * 0.7, size * 1.2, size * 0.18); x.stroke();
+  x.fillStyle = color; x.textAlign = "center"; x.fillText(text, 0, size * 0.12);
+  x.globalCompositeOperation = "destination-out"; const r = rng(text.length * 31); for (let i = 0; i < 220; i++) { x.globalAlpha = 0.5 * r(); x.fillRect((r() - 0.5) * (w + size), (r() - 0.6) * size * 1.2, 3 + r() * 7, 2 + r() * 4); }
+  x.restore();
+}
+function paper(cx, cy, w, h, rot, t, at, draw) {
+  const p = prog(t, at, at + 0.35); if (p <= 0) return; const e = oB(p, 1.2);
+  x.save(); x.translate(cx, lerp(cy - 900, cy, e)); x.rotate(rot + (1 - p) * 0.6); x.shadowColor = "rgba(0,0,0,.6)"; x.shadowBlur = 30; x.shadowOffsetY = 14;
+  x.fillStyle = C.paper; x.fillRect(-w / 2, -h / 2, w, h); x.shadowColor = "transparent"; x.fillStyle = "rgba(120,90,60,.18)"; x.fillRect(-w / 2, -h / 2, w, 10); draw(w, h); x.restore();
+}
+
+/* ---------- the chief: rigged parts + hand props ---------- */
+const RW = 2160, RH = 2160, OX = 540, OY = 900;                 // rig canvas with margins around the 1080 rig
+const rigC = document.createElement("canvas"); rigC.width = RW; rigC.height = RH; const rx = rigC.getContext("2d");
+const HAND = { armL: [168.75, 540], armR: [911.25, 540] };
+function handAt(arm, ang) { const piv = arm === "armL" ? RIG.pivot_armL : RIG.pivot_armR, h = HAND[arm], dx = h[0] - piv[0], dy = h[1] - piv[1];
+  return [piv[0] + dx * Math.cos(ang) - dy * Math.sin(ang), piv[1] + dx * Math.sin(ang) + dy * Math.cos(ang)]; }
+function drawProp(name, px, py, rot, mirror, sc = 1) {
+  const im = IMG["p_" + name]; if (!im) return; rx.save(); rx.translate(px, py); rx.rotate(rot); rx.scale(mirror ? -sc : sc, sc); rx.drawImage(im, -256, -256); rx.restore();
+}
+function drawChief(pose, tint, t) {
+  rx.setTransform(1, 0, 0, 1, 0, 0); rx.clearRect(0, 0, RW, RH); rx.translate(OX, OY);
+  const c = RIG.cell_px, feet = RIG.feet;
+  rx.save(); rx.translate(feet[0], feet[1]); rx.rotate(pose.lean || 0); rx.scale((pose.turn || 1) / Math.sqrt(pose.squash || 1), pose.squash || 1); rx.translate(-feet[0], -feet[1] - (pose.hop || 0));
+  for (const n of ["2", "4", "7", "9"]) { const lift = (pose.legs && pose.legs[n]) || 0; rx.drawImage(IMG["leg" + n], 0, -lift); }
+  rx.save(); rx.translate(0, -(pose.bob || 0));
+  rx.drawImage(IMG.body, 0, 0);
+  const [mx, my] = RIG.mouth, o = clamp(pose.mouth || 0);
+  if (pose.surprised) { for (const [ex, ey] of RIG.eyes) { rx.fillStyle = "#050405"; rx.fillRect(ex - c * 0.68, ey - c * 0.75, c * 1.36, c * 1.4); } }
+  else if (pose.blink) { for (const [ex, ey] of RIG.eyes) { rx.fillStyle = "#df9478"; rx.fillRect(ex - c * 0.52, ey - c * 0.52, c * 1.04, c * 1.04); rx.fillStyle = "#050405"; rx.fillRect(ex - c * 0.5, ey - 4, c, 9); } }
+  else if (pose.squint) { for (const [ex, ey] of RIG.eyes) { rx.fillStyle = "#df9478"; rx.fillRect(ex - c * 0.52, ey - c * 0.52, c * 1.04, c * 0.5); } }
+  const mw = c * (1.4 + 0.4 * o), mh = c * (0.2 + 0.58 * o); rx.fillStyle = "#050405"; rx.fillRect(mx - mw / 2, my - mh / 2, mw, mh);
+  if (pose.front) drawProp(pose.front, 540 + (pose.frontX || 0), pose.frontY || 640, pose.frontRot || 0, false, pose.frontScale || 1.25);
+  for (const [n, piv, ang, hold, prot] of [["armL", RIG.pivot_armL, pose.armL || 0, pose.holdL, pose.propRotL || 0], ["armR", RIG.pivot_armR, pose.armR || 0, pose.holdR, pose.propRotR || 0]]) {
+    rx.save(); rx.translate(piv[0], piv[1]); rx.rotate(ang); rx.translate(-piv[0], -piv[1]); rx.drawImage(IMG[n], 0, 0); rx.restore();
+    if (hold) { const [hx, hy] = handAt(n, ang); drawProp(hold, hx, hy + (n === "armL" ? pose.tossL || 0 : 0), ang + prot, n === "armL", pose.propScale || 1); }
+  }
+  if (pose.beam) {                           // flashlight beam from the left hand, pointing outward
+    const ang = pose.armL || 0, [hx, hy] = handAt("armL", ang), dir = Math.PI + ang + (pose.propRotL || 0) * -1;
+    const tipX = hx + Math.cos(dir) * 190, tipY = hy + Math.sin(dir) * 190; rx.save(); rx.globalCompositeOperation = "lighter";
+    const g = rx.createRadialGradient(tipX, tipY, 10, tipX, tipY, 1300); g.addColorStop(0, "rgba(255,240,200,.75)"); g.addColorStop(1, "rgba(255,240,200,0)"); rx.fillStyle = g;
+    rx.beginPath(); rx.moveTo(tipX, tipY); rx.arc(tipX, tipY, 1300, dir - 0.22, dir + 0.22); rx.closePath(); rx.fill(); rx.restore();
+  }
+  if (pose.steam) { const [hx, hy] = handAt("armL", pose.armL || 0); rx.save(); for (let k = 0; k < 3; k++) { const ph = (t * 0.8 + k / 3) % 1; rx.globalAlpha = 0.35 * (1 - ph); rx.fillStyle = "#fff"; rx.beginPath(); rx.arc(hx - 90 + Math.sin(t * 3 + k) * 12, hy - 90 - ph * 160, 14 + ph * 22, 0, 6.283); rx.fill(); } rx.restore(); }
+  rx.restore(); rx.restore();
+  for (const f of pose.flying || []) if (f[3]) drawProp("paper", f[0], f[1], f[2], false, f[3]);   // loose sheets (rig coords)
+  if (pose.dropMag != null) { const d = pose.dropMag; drawProp("magnifier", 960 + 250 * d, 520 - 500 * d + 1800 * d * d, 7 * d, false, 1); }
+  if (tint) { rx.setTransform(1, 0, 0, 1, 0, 0); rx.save(); rx.globalCompositeOperation = "source-atop"; rx.fillStyle = tint; rx.fillRect(0, 0, RW, RH); rx.restore(); }
+  return rigC;
+}
+function placeChief(loc, pose, tint, dx = 0, t = 0) {
+  const L = LOC[loc], s = L.height_px / 675 * (pose.scale || 1), fx = L.feet[0] + dx, fy = L.feet[1];
+  x.save(); const g = x.createRadialGradient(fx, fy, 0, fx, fy, 260 * s); g.addColorStop(0, "rgba(0,0,0,.55)"); g.addColorStop(1, "rgba(0,0,0,0)");
+  x.translate(fx, fy); x.scale(1, 0.22); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 260 * s * (1 - clamp((pose.hop || 0) / 300) * 0.5), 0, 6.283); x.fill(); x.restore();
+  const im = drawChief(pose, tint, t); x.save(); x.translate(fx, fy); x.scale(s, s); x.drawImage(im, -(RIG.feet[0] + OX), -(RIG.feet[1] + OY)); x.restore();
+}
+// sheets thrown from a point: [x, y, rot, scale] in rig coords
+function sheets(t, at, n, ox, oy, seed, spread = 1) {
+  const r = rng(seed), out = [];
+  for (let i = 0; i < n; i++) { const t0 = at + i * 0.12, d = t - t0; if (d < 0 || d > 1.6) continue;
+    const vx = (r() - 0.5) * 900 * spread, vy = -700 - r() * 500, sp = (r() - 0.5) * 8; out.push([ox + vx * d, oy + vy * d + 900 * d * d, sp * d, 0.75]); }
+  return out;
+}
+function basePose(t) {
+  const e = env(t); return { mouth: e, bob: Math.abs(wave(t, 3.2)) * 8 * e, squash: 1 + 0.03 * e * wave(t, 6), blink: (t % 3.3) > 3.18, armL: 0.08 * wave(t, 0.7), armR: -0.08 * wave(t, 0.8) };
+}
+const walkLegs = (t, amp) => ({ "2": Math.max(0, wave(t, 3)) * amp, "7": Math.max(0, wave(t, 3)) * amp, "4": Math.max(0, -wave(t, 3)) * amp, "9": Math.max(0, -wave(t, 3)) * amp });
+
+/* ---------- scenes ---------- */
+const SCENES = [
+  { a: 0.0, b: 7.0, loc: "office", tint: "rgba(255,170,90,.10)" },
+  { a: 7.0, b: 11.5, loc: "archive", tint: "rgba(255,190,120,.12)" },
+  { a: 11.5, b: 14.85, loc: "roof", tint: "rgba(90,110,255,.22)" },
+  { a: 14.85, b: 20.0, loc: "interrogation", tint: "rgba(255,80,40,.18)" },
+  { a: 20.0, b: 23.25, loc: "vault", tint: "rgba(255,180,60,.14)" },
+  { a: 23.25, b: 25.3, loc: "mugshot", tint: "rgba(200,220,255,.06)" },
+  { a: 25.3, b: 30.0, loc: "prison", tint: "rgba(160,200,255,.12)" },
+];
+function chiefPose(t) {
+  const p = basePose(t);
+  if (t < 3.5) {                                  // office: coffee in the left hand, salute with the right
+    p.holdL = "mug"; p.armL = -0.35 + 0.05 * wave(t, 0.6); p.propRotL = 0.35; p.steam = true;
+    const up = io(prog(t, 0.5, 0.85)) * (1 - io(prog(t, 2.6, 3.0))); p.armR = lerp(p.armR, -2.05, up); p.hop = 30 * Math.max(0, Math.sin(prog(t, 0.45, 0.8) * Math.PI));
+  } else if (t < 7.0) {                           // pacing along the desk, digging through an open folder
+    const walking = (t > 3.5 && t < 4.3) || (t > 5.6 && t < 6.4);
+    p.dx = 160 * Math.sin((t - 3.5) * 1.1); if (walking) { p.legs = walkLegs(t, 22); p.bob += Math.abs(wave(t, 3)) * 10; }
+    p.holdL = "folder_open"; p.armL = -0.25; p.propRotL = 0.25; p.squint = !p.blink;
+    p.armR = 0.25 + 0.35 * Math.max(0, Math.sin(t * 9)); p.lean = -0.04;            // right hand rummaging
+    p.flying = [...sheets(t, 3.6, 6, 120, 520, 3), ...sheets(t, 5.0, 6, 120, 520, 5)];
+  } else if (t < 11.5) {                          // archive: carries the box in, digs, raises the thick file
+    const wk = prog(t, 7.0, 8.4); p.dx = lerp(-420, 60, io(wk));
+    if (wk < 1) { p.legs = walkLegs(t, 26); p.bob += Math.abs(wave(t, 3)) * 14; p.front = "box"; p.frontY = 680; p.armL = -0.65; p.armR = 0.65; }
+    else if (t < 8.9) { p.front = "box"; p.frontY = lerp(680, 820, io(prog(t, 8.4, 8.6))); p.armL = -0.9 + 0.3 * Math.sin(t * 14); p.armR = 0.9 - 0.3 * Math.sin(t * 14 + 1); p.flying = sheets(t, 8.5, 5, 540, 700, 9, 1.3); p.squint = true; }
+    else { p.front = "thick"; p.frontY = 110 - 20 * Math.abs(wave(t, 1.6)); p.frontScale = 1.1; p.armL = 1.35; p.armR = -1.35; p.hop = 18 * Math.abs(wave(t, 1.6)); p.flying = sheets(t, 8.9, 4, 540, 300, 11, 1.6); }
+  } else if (t < 14.85) {                         // roof: flashlight sweeping the night, hand to brow
+    p.holdL = "flashlight"; p.armL = 1.05 + 0.3 * Math.sin((t - 11.5) * 1.6); p.propRotL = 0; p.beam = t > 11.62;
+    const k = io(prog(t, 11.6, 12.0)); p.armR = lerp(p.armR, -2.35, k); p.lean = 0.05 * wave(t, 0.35); p.squint = true;
+  } else if (t < 20.0) {                          // interrogation: walks in with a magnifier, slams the table, drops it in shock
+    p.dx = lerp(-220, 0, io(prog(t, 14.9, 15.4))); if (t < 15.4) p.legs = walkLegs(t, 22);
+    if (t < 18.5) { p.holdR = "magnifier"; p.armR = -0.35 + 0.12 * Math.sin(t * 2.2); p.propRotR = 0.2; p.squint = !p.blink; }
+    p.armL = -0.2;
+    if (t > 15.4 && t < 15.85) { const k = prog(t, 15.4, 15.75); p.armL = lerp(1.2, -0.4, oC(k)); }
+    if (t > 17.85 && t < 18.5) { p.mouth = 0; p.bob = 0; }
+    if (t > 18.5 && t < 19.9) {
+      p.surprised = true; p.mouth = 1; p.blink = false; p.squint = false; p.hop = 90 * Math.max(0, Math.sin((t - 18.5) * 7)) * Math.exp(-(t - 18.5) * 1.3); p.armL = 1.5; p.armR = -1.5;
+      const d = t - 18.5; p.flying = [[1000 + 300 * d, 400 + 700 * d + 1600 * d * d, 6 * d, 0]];   // placeholder slot (scale 0 = hidden)
+      p.dropMag = d;
+    }
+    if (t >= 19.9) { p.armR = -0.2; }
+  } else if (t < 23.25) {                         // vault: stamping each achievement, tossing keys
+    p.holdR = "stamp"; p.propRotR = 1.57; const hits = [20.6, 21.0, 21.4]; let a = -1.0;
+    for (const h of hits) { const d = t - h; if (d > -0.18 && d < 0.2) a = d < 0 ? lerp(-1.0, -1.6, (d + 0.18) / 0.18) : lerp(0.35, -1.0, d / 0.2); }
+    p.armR = a; p.holdL = "keys"; p.armL = 0.5; p.tossL = -Math.max(0, Math.sin((t - 20) * 5)) * 120; p.hop = 12 * Math.abs(wave(t, 1.8));
+  } else if (t < 25.3) {                          // mugshot: holds the ИНЖЕНЕР placard, turns for the side shot, shrugs
+    p.front = "placard"; p.frontY = 690; p.frontScale = 1.45; p.armL = -0.55; p.armR = 0.55; p.turn = 1 - 0.5 * Math.sin(prog(t, 23.9, 24.4) * Math.PI);
+    if (t > 24.6) { const k = io(prog(t, 24.6, 24.8)); p.armL = lerp(p.armL, 0.9, k); p.armR = lerp(p.armR, -0.9, k); p.hop = 10 * k; p.frontY = lerp(690, 740, k); }
+  } else {                                        // prison: walks to the bars jingling keys, beckons, points at you
+    const wk = prog(t, 25.3, 26.6); p.scale = lerp(0.82, 1.0, io(wk)); if (wk < 1) { p.legs = walkLegs(t, 24); p.bob += Math.abs(wave(t, 3)) * 12; }
+    p.holdR = "keys"; p.armR = -1.4 + 0.45 * wave(t, 2.2); p.propRotR = 1.57 + 0.3 * wave(t, 4.4); p.armL = -0.2;
+    if (t > 28.4) { const k = io(prog(t, 28.4, 28.6)); p.armR = lerp(p.armR, -0.9, k); p.scale = 1 + 0.05 * k; }
+    p.dx = 0;
+  }
+  return p;
+}
+
+/* ---------- overlays timed to the voice ---------- */
+function overlays(t) {
+  if (t < 3.6) { stamp("КОМПРОМАТ", 540, 300, t, 1.3, 96, -0.09); T(typed("ДЕЛО № 2026 · @leonario23", t, 1.8, 26), 540, 440, { size: 44, align: "center", a: t > 3.2 ? 1 - prog(t, 3.2, 3.5) : 1 }); }
+  if (t > 3.5 && t < 7.0) {
+    paper(310, 360, 400, 280, -0.07, t, 3.6, (w, h) => { T("УЛИКА", -w / 2 + 34, -h / 2 + 64, { size: 36, c: "#2a2018" }); T(String(counter(73, t, 3.7, 0.9)), -w / 2 + 30, h / 2 - 36, { size: 180, w: 900, f: D, c: C.red }); });
+    paper(760, 430, 400, 210, 0.06, t, 5.1, (w, h) => { T("СООБЩЕНИЙ", -w / 2 + 30, -h / 2 + 60, { size: 32, c: "#2a2018" }); T(fmt(counter(2585, t, 5.15, 1.0)), -w / 2 + 30, h / 2 - 34, { size: 92, w: 900, f: D, c: "#1c1612" }); });
+  }
+  if (t > 7.0 && t < 11.5) {
+    paper(540, 330, 900, 280, -0.03, t, 7.1, (w, h) => { T("СЛОВ НАПИСАЛ CLAUDE", -w / 2 + 40, -h / 2 + 64, { size: 36, c: "#2a2018" }); T(fmt(counter(200586, t, 7.15, 1.4)), -w / 2 + 34, h / 2 - 40, { size: 144, w: 900, f: D, c: C.red }); });
+    T(typed("≈ два с половиной романа", t, 8.6, 22), 540, 560, { size: 48, align: "center", glow: C.amber, glowR: 18 });
+  }
+  if (t > 11.5 && t < 14.85) {
+    if (t > 12.6) T("00:00", 540, 360, { size: 150, w: 900, f: D, c: C.red, align: "center", glow: C.red, glowR: 50, s: 1 + 0.08 * Math.exp(-(t - 12.6) * 6) });
+    if (t > 13.3) T(typed("НОЧНАЯ СОВА", t, 13.3, 20), 540, 460, { size: 56, ls: 6, align: "center", glow: "#7f8cff", glowR: 20 });
+  }
+  if (t > 14.85 && t < 20.0) {
+    paper(540, 330, 700, 250, 0.04, t, 14.95, (w, h) => { T("САМЫЙ ДЛИННЫЙ ЧАТ", -w / 2 + 34, -h / 2 + 60, { size: 34, c: "#2a2018" }); T(String(counter(321, t, 16.0, 1.5)), -w / 2 + 30, h / 2 - 36, { size: 124, w: 900, f: D, c: C.red }); T("сообщ.", 60, h / 2 - 40, { size: 44, c: "#2a2018" }); });
+    if (t > 17.95) {
+      const p = oB(prog(t, 17.95, 18.3), 1.3); x.save(); x.translate(540, 620); x.rotate(-0.08 + (1 - p) * 0.5); x.scale(p, p);
+      x.shadowColor = "rgba(0,0,0,.7)"; x.shadowBlur = 40; x.fillStyle = "#f2efe6"; x.fillRect(-330, -220, 660, 450); x.shadowColor = "transparent"; x.fillStyle = "#16121a"; x.fillRect(-300, -190, 600, 310);
+      T(typed("Сценарий ролика", t, 18.05, 34), -270, -70, { size: 50 }); T(typed("с массажёром", t, 18.5, 34), -270, 0, { size: 50, c: C.orange }); T("ЧАТ № 1 ПО ДЛИНЕ", -270, 196, { size: 28, c: "#2a2018" }); x.restore();
+      if (t > 18.6) T("?!", 830, 470, { size: 210, w: 900, f: D, c: C.red, rot: 0.2, s: oB(prog(t, 18.6, 18.8), 2.5), glow: C.red, glowR: 30 });
+    }
+  }
+  if (t > 20.0 && t < 23.25) {
+    T(typed("СЕКРЕТНЫЕ ДОСТИЖЕНИЯ", t, 20.05, 30), 540, 230, { size: 48, align: "center", c: C.amber, ls: 4, glow: C.amber, glowR: 20 });
+    [["НОЧНОЙ КЛУБ", 20.6], ["10 ДНЕЙ ПОДРЯД", 21.0], ["МАРАФОНЕЦ · 321", 21.4]].forEach(([s, at], i) => stamp(s, 540, 370 + i * 150, t, at, 66, [-0.05, 0.04, -0.03][i], i === 1 ? C.amber : C.red));
+  }
+  if (t > 23.25 && t < 25.3) {
+    if (t > 24.6) { const names = ["КРЕАТОР", "СТРАТЕГ", "ИССЛЕДОВАТЕЛЬ", "СОБЕСЕДНИК"], k = Math.floor((t - 24.6) / 0.13) % 4; T(names[k] + "?", 540, 300, { size: 70, w: 900, f: D, c: C.amber, align: "center", glow: C.amber, glowR: 24, stroke: "#000", strokeW: 8 }); }
+  }
+  if (t > 25.3 && t < 29.5) {
+    stamp("ТВОЙ ЧЕРЁД", 540, 280, t, 25.35, 100, -0.06);
+    ["бесплатно", "2 минуты", "чаты не уходят"].forEach((s, i) => { const p = oB(prog(t, 26.4 + i * 0.45, 26.7 + i * 0.45), 2); if (p > 0) { x.save(); x.translate(540, 440 + i * 90); x.scale(p, p); x.font = `700 44px ${M}`; const w = x.measureText(s).width + 70; x.fillStyle = C.paper; x.fillRect(-w / 2, -40, w, 76); x.fillStyle = "#16121a"; x.textAlign = "center"; x.fillText(s, 0, 12); x.restore(); } });
+    const pp = prog(t, 28.6, 28.85); if (pp > 0) { x.save(); x.translate(540, 1560); const s = oB(pp, 2) * (1 + 0.035 * Math.sin((t - 28.85) * 10) * (t > 28.85 ? 1 : 0)); x.scale(s, s); x.fillStyle = C.red; x.beginPath(); x.roundRect(-430, -78, 860, 156, 78); x.fill(); x.fillStyle = "#fff"; x.font = `900 52px ${D}`; x.textAlign = "center"; x.fillText("ссылка в профиле ↑", 0, 18); x.restore(); }
+  }
+}
+
+/* ---------- camera ---------- */
+const CAM = [[0, 1.0, 540, 980], [3.5, 1.1, 540, 1000], [7.0, 1.12, 540, 1000], [7.0, 1.0, 540, 960], [11.5, 1.12, 540, 1000], [11.5, 1.0, 540, 900], [14.85, 1.1, 540, 950],
+  [14.85, 1.0, 540, 980], [17.85, 1.12, 540, 1050], [17.9, 1.42, 540, 990], [18.95, 1.42, 540, 990], [19.5, 1.08, 540, 1040], [20.0, 1.1, 540, 1000], [20.0, 1.0, 540, 980], [23.25, 1.1, 540, 1000],
+  [23.25, 1.15, 540, 1080], [25.3, 1.2, 540, 1080], [25.3, 1.0, 540, 980], [28.4, 1.06, 540, 1000], [28.6, 1.16, 540, 1060], [30, 1.18, 540, 1060]];
+const IMPACTS = [1.3, 3.5, 7.0, 11.5, 15.7, 17.85, 20.0, 21.4, 25.3, 28.6];
+function camAt(t) {
+  let i = 0; while (i < CAM.length - 2 && t >= CAM[i + 1][0]) i++; const a = CAM[i], b = CAM[i + 1], p = b[0] > a[0] ? io(prog(t, a[0], b[0])) : 1;
+  let z = lerp(a[1], b[1], p), fx = lerp(a[2], b[2], p), fy = lerp(a[3], b[3], p);
+  fx += Math.sin(t * 0.7) * 6 + Math.sin(t * 1.9) * 2; fy += Math.cos(t * 0.6) * 5;
+  for (const im of IMPACTS) { const d = t - im; if (d >= 0 && d < 0.5) { const k = 16 * Math.exp(-d * 9); fx += Math.sin(d * 90) * k; fy += Math.cos(d * 70) * k; } }
+  return { z, fx, fy };
+}
+
+/* ---------- frame ---------- */
+const sceneC = document.createElement("canvas"); sceneC.width = W; sceneC.height = H; const scx = sceneC.getContext("2d");
+function drawLocation(sc, t) {
+  const cam = camAt(t), p = chiefPose(t);
+  x.save(); x.translate(W / 2, H / 2); x.scale(cam.z, cam.z); x.translate(-cam.fx, -cam.fy);
+  x.drawImage(IMG[sc.loc], 0, 0);
+  if (sc.loc === "interrogation") { const g = x.createLinearGradient(0, 400, 0, 1300); g.addColorStop(0, "rgba(255,190,120,.16)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.save(); x.globalCompositeOperation = "screen"; x.fillStyle = g; x.beginPath(); x.moveTo(500, 450); x.lineTo(650, 450); x.lineTo(1050, 1300); x.lineTo(100, 1300); x.fill(); x.restore(); }
+  placeChief(sc.loc, p, sc.tint, p.dx || 0, t);
+  if (sc.loc === "prison" && IMG.prison_fg) x.drawImage(IMG.prison_fg, 0, 0);
+  x.restore();
+}
+function render6(t) {
+  x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = C.ink; x.fillRect(0, 0, W, H);
+  let i = SCENES.findIndex((s) => t >= s.a && t < s.b); if (i < 0) i = SCENES.length - 1; const sc = SCENES[i], lt = t - sc.a;
+  // whip-pan between locations: previous slides out, new slides in with a horizontal smear
+  const TR = 0.28;
+  if (i > 0 && lt < TR) {
+    const p = io(lt / TR), prev = SCENES[i - 1];
+    x.save(); x.translate(-p * W, 0); drawLocation(prev, sc.a - 0.001); x.restore();
+    x.save(); x.translate((1 - p) * W, 0); drawLocation(sc, t); x.restore();
+    x.save(); x.globalAlpha = 0.35 * Math.sin(p * Math.PI); for (let k = 1; k <= 4; k++) x.drawImage(out, -k * 40, 0); x.restore();
+  } else drawLocation(sc, t);
+  if (t < 0.5) { x.fillStyle = `rgba(0,0,0,${1 - prog(t, 0.1, 0.5)})`; x.fillRect(0, 0, W, H); }
+  overlays(t);
+  for (const f of [17.85, 23.4, 23.9, 24.4]) { const d = t - f; if (d >= 0 && d < 0.3) { x.fillStyle = `rgba(255,255,255,${0.9 * (1 - d / 0.3)})`; x.fillRect(0, 0, W, H); } }
+  if (t > 29.5) { x.fillStyle = C.ink; x.fillRect(0, 0, W, H); T("@leonario23", 540, 980, { size: 100, w: 900, f: D, align: "center" }); T("ССЫЛКА В ПРОФИЛЕ", 540, 1070, { size: 40, c: C.red, align: "center", ls: 8 }); }
+  const v = x.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.78); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,0.55)"); x.fillStyle = v; x.fillRect(0, 0, W, H);
+  const r = rng(Math.floor(t * 60)); x.save(); x.globalAlpha = 0.06; for (let k = 0; k < 900; k++) { x.fillStyle = r() > 0.5 ? "#fff" : "#000"; x.fillRect(r() * W, r() * H, 2, 2); } x.restore();
+  if (t < 29.5) window.drawSubsOn(x, t);
+}
+window.render7 = render6; window.DUR = DUR;
+})();
+</script>
+</body>
+</html>
