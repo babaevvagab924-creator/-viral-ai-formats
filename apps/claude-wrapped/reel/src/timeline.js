@@ -2,20 +2,26 @@
 // `speech` = duration until the end of speech (trailing silence trimmed), measured with ffmpeg silencedetect.
 export const FPS = 30;
 
-// Subtitle chunks (2–4 words). Start times come from speech recognition timestamps, relative to the clip start.
+// Subtitle chunks (2–4 words) with the exact script. Word timing is spread evenly over the speech
+// length of each file: a chunk starts at (words before it / words in the file) × speech.
 const CLIPS = {
-  vo1: { speech: 3.16, speaker: "narrator", subs: [[0, "У ChatGPT"], [1.08, "на тебя тоже"], [2.0, "есть компромат"]] },
-  vo2: { speech: 3.21, speaker: "narrator", subs: [[0, "Но в клуб"], [0.68, "«Компромат» пускали"], [2.24, "только своих"]] },
-  point: { speech: 1.15, speaker: "point", subs: [[0, "Не положено!"]] },
-  vo3a: { speech: 2.12, speaker: "narrator", subs: [[0, "ChatGPT пытался"], [1.32, "прорваться…"]] },
-  bubble: { speech: 2.24, speaker: "bubble", subs: [[0, "Я Клод."], [1.44, "Честно."]] },
-  vo3b: { speech: 1.13, speaker: "narrator", subs: [[0.06, "Не вышло."]] },
-  vo4: { speech: 4.23, speaker: "narrator", subs: [[0.04, "Теперь"], [1.76, "ChatGPT и DeepSeek"], [3.4, "тоже внутри"]] },
-  vo5: { speech: 5.18, speaker: "narrator", subs: [[0, "Сколько чатов,"], [1.44, "во сколько ты пишешь"], [2.68, "по ночам —"], [3.92, "всё всплывает"]] },
-  vo6: { speech: 2.37, speaker: "narrator", subs: [[0, "Какой у тебя тип?"], [1.28, "Пиши в комментах"]] },
-  vo7: { speech: 6.27, speaker: "narrator", subs: [[0, "Закажи экспорт"], [1.0, "в настройках,"], [1.84, "дождись письма"], [2.88, "и загрузи архив."], [4.32, "Всё считается"], [5.24, "прямо в телефоне"]] },
-  vo8: { speech: 2.69, speaker: "narrator", subs: [[0, "Компромат —"], [1.28, "ссылка в профиле"]] },
+  vo1: { speech: 3.16, speaker: "narrator", chunks: ["У ChatGPT", "на тебя тоже", "есть компромат."] },
+  vo2: { speech: 3.21, speaker: "narrator", chunks: ["Но в клуб", "«Компромат» пускали", "только своих."] },
+  point: { speech: 1.15, speaker: "point", chunks: ["Не положено."] },
+  vo3a: { speech: 2.12, speaker: "narrator", chunks: ["ChatGPT пытался", "прорваться…"] },
+  bubble: { speech: 2.24, speaker: "bubble", chunks: ["Я Клод!", "Честно!"] },
+  vo3b: { speech: 1.13, speaker: "narrator", chunks: ["Не вышло."] },
+  vo4: { speech: 4.23, speaker: "narrator", chunks: ["А теперь —", "вышло!", "ChatGPT и DeepSeek", "тоже внутри."] },
+  vo5: { speech: 5.18, speaker: "narrator", chunks: ["Сколько чатов,", "во сколько ты пишешь", "по ночам —", "всё всплывает."] },
+  vo6: { speech: 2.37, speaker: "narrator", chunks: ["Какой у тебя тип?", "Пиши в комментах."] },
+  vo7: { speech: 6.27, speaker: "narrator", chunks: ["Закажи экспорт", "в настройках,", "дождись письма", "и загрузи архив.", "Всё считается", "прямо в телефоне."] },
+  vo8: { speech: 2.69, speaker: "narrator", chunks: ["Компромат.", "Ссылка в профиле."] },
 };
+const wordsIn = (s) => s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+for (const c of Object.values(CLIPS)) {
+  const total = c.chunks.reduce((n, ch) => n + wordsIn(ch), 0); let before = 0;
+  c.subs = c.chunks.map((ch) => { const at = (before / total) * c.speech; before += wordsIn(ch); return [at, ch]; });
+}
 
 const LEAD = 0.15, GAP = 0.3;
 const SCENES_DEF = [

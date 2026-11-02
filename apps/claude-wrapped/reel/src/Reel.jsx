@@ -257,14 +257,15 @@ const SCENE_COMPONENTS = [Scene1, Scene2, Scene3, Scene4, Scene5, Scene6, Scene7
 /* ---------- subtitles: 2–4 words, in sync, above the Reels UI (bottom edge ≤ 75% of height) ---------- */
 const SUBS = SCENES.flatMap((sc) => sc.clips.flatMap((c) => c.subs.map(([at, text], i) => {
   const start = sc.start + c.at + at, next = c.subs[i + 1] ? sc.start + c.at + c.subs[i + 1][0] : sc.start + c.at + c.speech + 0.15;
-  return { start, end: next, text };
+  return { start, end: next, text, speaker: c.speaker };
 })));
+const SUB_COLOR = { narrator: "#ffffff", point: "#ff7a1a", bubble: "#3fe08f" };
 const Subtitles = () => {
   const t = useT(); const s = SUBS.find((q) => t >= q.start && t < q.end); if (!s) return null;
   const p = lerp(t, s.start, s.start + 0.12, 0.85, 1, Easing.out(Easing.back(2)));
   return (
     <div style={{ position: "absolute", left: 60, right: 60, bottom: 1920 * 0.25 + 30, textAlign: "center", transform: `scale(${p})`, zIndex: 50 }}>
-      <span style={{ fontFamily: "Unbounded", fontWeight: 900, fontSize: 64, lineHeight: 1.1, color: "#fff", WebkitTextStroke: "14px #000", paintOrder: "stroke fill", textShadow: "0 6px 0 rgba(0,0,0,.35)" }}>{s.text}</span>
+      <span style={{ fontFamily: "Unbounded", fontWeight: 900, fontSize: 64, lineHeight: 1.1, color: SUB_COLOR[s.speaker] || "#fff", WebkitTextStroke: "14px #000", paintOrder: "stroke fill", textShadow: "0 6px 0 rgba(0,0,0,.35)" }}>{s.text}</span>
     </div>
   );
 };
