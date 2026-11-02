@@ -14,7 +14,7 @@ SITE_URL = (sys.argv[1] if len(sys.argv) > 1 else "https://babaevvagab924-creato
 OUT = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else HERE / "site"
 
 TITLE = "Компромат — итоги года с ИИ без цензуры"
-DESC = ("Загрузи экспорт чатов из Claude и получи сторис-карточки: сколько чатов, "
+DESC = ("Загрузи экспорт чатов из Claude, ChatGPT или DeepSeek и получи сторис-карточки: сколько чатов, "
         "сколько слов написал ИИ, твой пиковый час и тип. Бесплатно, всё считается в браузере.")
 ICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E"
         "%3Crect width='64' height='64' rx='14' fill='%2312101a'/%3E"

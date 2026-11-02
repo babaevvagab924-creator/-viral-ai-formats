@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Компромат — итоги года с ИИ без цензуры</title>
-<meta name="description" content="Загрузи экспорт чатов из Claude и получи сторис-карточки: сколько чатов, сколько слов написал ИИ, твой пиковый час и тип. Бесплатно, всё считается в браузере.">
+<meta name="description" content="Загрузи экспорт чатов из Claude, ChatGPT или DeepSeek и получи сторис-карточки: сколько чатов, сколько слов написал ИИ, твой пиковый час и тип. Бесплатно, всё считается в браузере.">
 <meta name="theme-color" content="#12101a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312101a'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23ff7a1a'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ru_RU">
 <meta property="og:title" content="Компромат — итоги года с ИИ без цензуры">
-<meta property="og:description" content="Загрузи экспорт чатов из Claude и получи сторис-карточки: сколько чатов, сколько слов написал ИИ, твой пиковый час и тип. Бесплатно, всё считается в браузере.">
+<meta property="og:description" content="Загрузи экспорт чатов из Claude, ChatGPT или DeepSeek и получи сторис-карточки: сколько чатов, сколько слов написал ИИ, твой пиковый час и тип. Бесплатно, всё считается в браузере.">
 <meta property="og:url" content="https://babaevvagab924-creator.github.io/kompromat/">
 <meta property="og:image" content="https://babaevvagab924-creator.github.io/kompromat/og.png">
 <meta property="og:image:width" content="1200">
@@ -82,6 +82,14 @@ h1 em { font-style: normal; color: var(--tangerine); }
 .status { font-family: var(--mono); font-size: 13px; min-height: 1.4em; margin: 0; color: var(--mint); }
 .status.err { color: var(--rose); }
 .manifest { display: grid; gap: 10px; }
+.src { margin-top: 26px; }
+.src .steps-title { margin: 0 0 12px; }
+.src-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.src-tabs button { font: 600 14px/1 var(--body); color: var(--muted); background: var(--ink-2); border: 0; box-shadow: inset 0 0 0 1px var(--line); border-radius: 999px; padding: 10px 16px; cursor: pointer; }
+.src-tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: none; }
+.src-tabs button:focus-visible { outline: 3px solid var(--lemon); outline-offset: 2px; }
+.src .steps { margin-top: 16px; }
+.src-note { margin: 16px 0 0; padding: 10px 14px; border-radius: 12px; background: #2a1f12; color: var(--tangerine); font-size: 14px; font-weight: 600; }
 
 .steps { margin: 32px 0 0; padding: 0; list-style: none; display: grid; gap: 14px; counter-reset: s; }
 .steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: start; color: #d9d3e6; }
@@ -218,8 +226,8 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
 <div class="wrap">
   <main class="intro">
     <div class="brand"><button class="dot" id="dot" type="button" aria-label="Оранжевая точка"></button> Компромат · итоги года с ИИ без цензуры</div>
-    <h1>Весь компромат на&nbsp;твой год <em>с&nbsp;Claude</em></h1>
-    <p class="lead">Загрузи экспорт своих чатов, и приложение посчитает, сколько ты общаешься с Claude, о чём чаще всего спрашиваешь, в какое время суток работаешь и сколько часов удалось сэкономить. Итог выдаётся пачкой сторис-карточек. Выкладывать или нет — решать тебе.</p>
+    <h1>Весь компромат на&nbsp;твой год <em>с&nbsp;ИИ</em></h1>
+    <p class="lead">Загрузи экспорт своих чатов, и приложение посчитает, сколько ты общаешься с ИИ, о чём чаще всего спрашиваешь, в какое время суток работаешь и сколько часов удалось сэкономить. Итог выдаётся пачкой сторис-карточек. Выкладывать или нет — решать тебе.</p>
 
     <div class="drop" id="drop">
       <div class="drop-row">
@@ -230,29 +238,53 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
         <input id="file" type="file" accept=".zip,.json,application/zip,application/json" multiple hidden>
         <button class="btn ghost" id="demo" type="button">Показать пример</button>
       </div>
-      <p class="hint">Нужен архив <code>conversations-000.zip</code> из экспорта Claude. Если загрузить файл-оглавление <code>manifest…json</code> из письма, приложение покажет, что скачать.</p>
+      <p class="hint">Подходит ZIP или <code>conversations.json</code> из экспорта Claude, ChatGPT или DeepSeek. Можно просто перетащить файл сюда.</p>
       <p class="status" id="status" role="status" aria-live="polite"></p>
       <div class="manifest" id="manifest" hidden>
         <p class="hint">Claude присылает экспорт по частям. Нажми кнопку, скачай архив и загрузи его сюда той же кнопкой «Загрузить экспорт». Ссылка работает 24 часа.</p>
         <div class="drop-row" id="manifest-links"></div>
       </div>
     </div>
+
+    <div class="src" id="src">
+      <p class="steps-title">Где взять экспорт</p>
+      <div class="src-tabs" role="tablist" aria-label="Чей экспорт">
+        <button type="button" role="tab" id="tab-claude" aria-controls="panel-claude" aria-selected="true">Claude</button>
+        <button type="button" role="tab" id="tab-chatgpt" aria-controls="panel-chatgpt" aria-selected="false" tabindex="-1">ChatGPT</button>
+        <button type="button" role="tab" id="tab-deepseek" aria-controls="panel-deepseek" aria-selected="false" tabindex="-1">DeepSeek</button>
+      </div>
+      <div role="tabpanel" id="panel-claude" aria-labelledby="tab-claude">
+        <ol class="steps">
+          <li><span>Открой <b>claude.ai → Настройки → Конфиденциальность</b> (Settings → Privacy).</span></li>
+          <li><span>Нажми <b>«Экспорт данных»</b> (Export data). Через несколько минут придёт письмо со ссылкой.</span></li>
+          <li><span>Письмо ведёт на файл-оглавление со списком архивов. Скачай тот, где <b>category: conversations</b> (<code>conversations-000.zip</code>), и загрузи сюда. Можно загрузить и само оглавление <code>manifest…json</code>: приложение покажет, что скачать.</span></li>
+        </ol>
+      </div>
+      <div role="tabpanel" id="panel-chatgpt" aria-labelledby="tab-chatgpt" hidden>
+        <p class="src-note">Экспорт может готовиться до пары дней — закажи сейчас.</p>
+        <ol class="steps">
+          <li><span>Открой <b>chatgpt.com → Настройки → Управление данными</b> (Settings → Data controls).</span></li>
+          <li><span>Нажми <b>«Экспорт данных»</b> (Export data) и подтверди. Ссылка на архив придёт на почту и работает 24 часа.</span></li>
+          <li><span>Скачай ZIP и загрузи его сюда целиком. Распаковывать не нужно: лишние файлы приложение пропустит.</span></li>
+        </ol>
+      </div>
+      <div role="tabpanel" id="panel-deepseek" aria-labelledby="tab-deepseek" hidden>
+        <ol class="steps">
+          <li><span>Открой <b>chat.deepseek.com</b>, внизу слева нажми на профиль → <b>Настройки</b> (Settings).</span></li>
+          <li><span>В разделе <b>«Данные»</b> (Data) выбери <b>«Экспорт данных»</b> (Export data).</span></li>
+          <li><span>Скачай ZIP и загрузи его сюда или загрузи из него <code>conversations.json</code>.</span></li>
+        </ol>
+      </div>
+    </div>
   </main>
 
   <section class="howto" aria-label="Как получить экспорт">
-
-    <p class="steps-title">Как получить свой экспорт</p>
-    <ol class="steps">
-      <li><span>Открой <b>claude.ai → Настройки → Конфиденциальность</b> (Settings → Privacy).</span></li>
-      <li><span>Нажми <b>«Экспорт данных»</b> (Export data). Через несколько минут придёт письмо со ссылкой.</span></li>
-      <li><span>Письмо ведёт на файл-оглавление со списком архивов. Скачай тот, где <b>category: conversations</b> (<code>conversations-000.zip</code>), и загрузи сюда. Распаковывать не нужно.</span></li>
-    </ol>
 
     <div class="privacy">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       <span>Файл обрабатывается прямо в браузере и никуда не отправляется. Ни переписка, ни статистика не покидают твоё устройство.</span>
     </div>
-    <p class="legal">Неофициальный проект. Не связан с Anthropic. Claude — торговая марка Anthropic.</p>
+    <p class="legal">Неофициальный проект. Не связан с Anthropic, OpenAI и DeepSeek. Названия сервисов — торговые марки их владельцев.</p>
   </section>
 
   <aside class="stage" aria-label="Карточки итогов">
@@ -278,7 +310,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
         <summary id="eggs-count">Пасхалок найдено: 0 из 6</summary>
         <ul>
           <li>● Оранжевая точка любит, когда по ней стучат.</li>
-          <li>● Слово «Claude» в заголовке боится щекотки.</li>
+          <li>● Слова «с ИИ» в заголовке боятся щекотки.</li>
           <li>● Код из 80-х: ↑↑↓↓←→←→BA. На телефоне три быстрых тапа по надписи на карточке.</li>
           <li>● Напиши на клавиатуре тайное слово. Это имя.</li>
           <li>● Загляни сюда ночью.</li>
@@ -309,6 +341,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
   // Автор приложения: ник и ссылка попадают на каждую карточку и в PNG. Пусто — ничего не показывается.
   const CREATOR = { handle: "@leonario23", link: "instagram.com/leonario23" };
   const BRAND = "Компромат";
+  let AI_NAME = "Claude";   // whose export is loaded: "Claude" / "ChatGPT" / "DeepSeek"
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => Math.round(n).toLocaleString("ru-RU");
   const plural = (n, one, few, many) => {
@@ -328,6 +361,41 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
   const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const words = (t) => (t.match(/[\p{L}\p{N}]+/gu) || []).length;
 
+  /* ---------- parsing ChatGPT / DeepSeek exports (conversation trees in "mapping") ---------- */
+  const toDate = (v) => (v == null || v === "" ? null : new Date(typeof v === "number" ? v * 1000 : v));   // epoch seconds or ISO string
+  function mappingKind(conv) {
+    for (const n of Object.values(conv.mapping || {})) { const m = n && n.message; if (m && (Array.isArray(m.fragments) || "inserted_at" in m)) return "DeepSeek"; }
+    return "inserted_at" in conv && !("create_time" in conv) ? "DeepSeek" : "ChatGPT";
+  }
+  function branch(mapping, current) {         // the visible thread: current_node up to the root, or root down the last children
+    const path = [];
+    if (current && mapping[current]) { for (let id = current, guard = 0; id && mapping[id] && guard < 100000; id = mapping[id].parent, guard++) path.push(mapping[id]); return path.reverse(); }
+    let node = Object.values(mapping).find((n) => n && (n.parent == null || !mapping[n.parent]));
+    for (let guard = 0; node && guard < 100000; guard++) { path.push(node); const kids = node.children || []; node = kids.length ? mapping[kids[kids.length - 1]] : null; }
+    return path;
+  }
+  function fromMapping(conv, kind) {
+    const created = toDate(conv.create_time ?? conv.inserted_at ?? conv.update_time ?? conv.updated_at) || new Date();
+    const msgs = [];
+    for (const node of branch(conv.mapping || {}, conv.current_node)) {
+      const m = node && node.message; if (!m) continue;
+      if (m.metadata && m.metadata.is_visually_hidden_from_conversation) continue;
+      const t = toDate(m.create_time ?? m.inserted_at) || created;
+      const role = m.author && m.author.role;
+      if (role) {
+        if (role !== "user" && role !== "assistant") continue;                 // system, tool
+        let text = Array.isArray(m.content?.parts) ? m.content.parts.filter((x) => typeof x === "string").join("\n") : "";
+        if (!text && Array.isArray(m.fragments)) text = m.fragments.filter((f) => f && typeof f.content === "string" && !/THINK|SEARCH/i.test(f.type || "")).map((f) => f.content).join("\n");
+        msgs.push({ human: role === "user", t, text });
+      } else if (Array.isArray(m.fragments)) {                                 // DeepSeek: role lives in fragment types
+        const req = m.fragments.filter((f) => /REQUEST/i.test(f?.type || "")), res = m.fragments.filter((f) => /RESPONSE/i.test(f?.type || ""));
+        if (req.length) msgs.push({ human: true, t, text: req.map((f) => f.content || "").join("\n") });
+        if (res.length) msgs.push({ human: false, t, text: res.map((f) => f.content || "").join("\n") });
+      }
+    }
+    return { name: String(conv.title || conv.name || "").trim() || "Без названия", created, msgs: msgs.filter((x) => !isNaN(x.t)) };
+  }
+
   /* ---------- parsing the claude.ai export ---------- */
   function partText(m) {
     if (typeof m.text === "string" && m.text.trim()) return m.text;
@@ -336,7 +404,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
   }
   function normalize(raw) {
     const list = Array.isArray(raw) ? raw : Array.isArray(raw?.conversations) ? raw.conversations : null;
-    if (!list) throw new Error("В файле не нашлось списка разговоров. Нужен conversations.json из экспорта claude.ai.");
+    if (!list) throw new Error("В файле не нашлось списка разговоров. Нужен ZIP или conversations.json из Claude, ChatGPT или DeepSeek.");
     const convs = list.map((c) => {
       const created = new Date(c.created_at || c.updated_at || Date.now());
       const msgs = (c.chat_messages || c.messages || []).map((m) => ({
@@ -353,11 +421,11 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
   /* ---------- stats ---------- */
   const STOP = new Set(("и в во не что он на я с со как а то все она так его но да ты к у же вы за бы по только ее мне было вот от меня еще нет о из ему теперь когда даже ну вдруг ли если уже или ни быть был него до вас нибудь опять уж вам ведь там потом себя ничего ей может они тут где есть надо ней для мы тебя их чем была сам чтоб без будто чего раз тоже себе под будет ж тогда кто этот того потому этого какой совсем ним здесь этом один почти мой тем чтобы нее сейчас были куда зачем всех никогда можно при наконец два об другой хоть после над больше тот через эти нас про всего них какая много разве три эту моя впрочем хорошо свою этой перед иногда лучше чуть том нельзя такой им более всегда конечно всю между это как помоги помощь нужно сделать хочу можешь напиши создать создание новый новая новое про the and for with from that this your you how what why are can into about using use new help make create write chat untitled без названия").split(" "));
   const ARCH = [
-    { key: "code", title: "Инженер", line: "Ты строишь вещи. Код, ошибки, деплой: Claude для тебя второй разработчик в команде.", re: /код|python|javascript|js|sql|api|баг|ошибк|скрипт|функци|react|html|css|сервер|git|deploy|бот|code|bug|error|script|app|приложен|сайт/i },
-    { key: "create", title: "Креатор", line: "Сценарии, хуки, посты, идеи для видео. Ты превращаешь Claude в свою продакшн-студию.", re: /видео|reels|рилс|tiktok|тикток|shorts|сценар|хук|пост|контент|канал|блог|youtube|ютуб|карусел|промпт|prompt|instagram|инстаграм|сторис|монтаж|video|content|caption/i },
+    { key: "code", title: "Инженер", line: "Ты строишь вещи. Код, ошибки, деплой: {AI} для тебя второй разработчик в команде.", re: /код|python|javascript|js|sql|api|баг|ошибк|скрипт|функци|react|html|css|сервер|git|deploy|бот|code|bug|error|script|app|приложен|сайт/i },
+    { key: "create", title: "Креатор", line: "Сценарии, хуки, посты, идеи для видео. Ты превращаешь {AI} в свою продакшн-студию.", re: /видео|reels|рилс|tiktok|тикток|shorts|сценар|хук|пост|контент|канал|блог|youtube|ютуб|карусел|промпт|prompt|instagram|инстаграм|сторис|монтаж|video|content|caption/i },
     { key: "learn", title: "Исследователь", line: "Ты задаёшь вопросы, на которые нет быстрых ответов. Каждый чат для тебя маленький урок.", re: /почему|объясни|как работает|что такое|история|наук|учеб|урок|экзамен|задач|физик|математ|explain|learn|study|history|research|перевод|английск/i },
-    { key: "work", title: "Стратег", line: "Планы, письма, таблицы, презентации. Ты используешь Claude как личного ассистента и операционного директора.", re: /план|стратег|бизнес|письм|email|резюме|ваканс|презентац|отчёт|отчет|маркетинг|продаж|клиент|проект|таблиц|excel|business|plan|resume|report|marketing/i },
-    { key: "life", title: "Собеседник", line: "Ты обсуждаешь с Claude то, что важно лично тебе: от рецептов до больших жизненных решений.", re: /совет|отношен|здоров|рецепт|путешеств|спорт|трениров|психолог|подар|мысл|жизн|настроен|advice|recipe|travel|health/i },
+    { key: "work", title: "Стратег", line: "Планы, письма, таблицы, презентации. Ты используешь {AI} как личного ассистента и операционного директора.", re: /план|стратег|бизнес|письм|email|резюме|ваканс|презентац|отчёт|отчет|маркетинг|продаж|клиент|проект|таблиц|excel|business|plan|resume|report|marketing/i },
+    { key: "life", title: "Собеседник", line: "Ты обсуждаешь с {AI} то, что важно лично тебе: от рецептов до больших жизненных решений.", re: /совет|отношен|здоров|рецепт|путешеств|спорт|трениров|психолог|подар|мысл|жизн|настроен|advice|recipe|travel|health/i },
   ];
 
   function computeStats(convs) {
@@ -405,17 +473,18 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     const [by, bm] = bestMonth ? bestMonth.split("-").map(Number) : [0, 0];
     const topics = [...tokenCount.entries()].filter(([, n]) => n > 1 || tokenCount.size < 12).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const archKey = Object.entries(archScore).sort((a, b) => b[1] - a[1])[0];
-    const arch = archKey && archKey[1] > 0 ? ARCH.find((a) => a.key === archKey[0]) : { title: "Универсал", line: "Код, тексты, идеи, вопросы обо всём: ты пробуешь Claude во всём подряд." };
-    // Time saved: Claude's words written by hand at ~20 words/minute (drafting + looking things up).
+    const base = archKey && archKey[1] > 0 ? ARCH.find((a) => a.key === archKey[0]) : { title: "Универсал", line: "Код, тексты, идеи, вопросы обо всём: ты пробуешь {AI} во всём подряд." };
+    const arch = { ...base, line: base.line.replace(/\{AI\}/g, AI_NAME) };
+    // Time saved: the assistant's words written by hand at ~20 words/minute (drafting + looking things up).
     const savedHours = aiWords / 20 / 60;
     const badges = [];
     if (peakHour < 5) badges.push(["🦉", "Ночной клуб", "Твой пиковый час — глубокой ночью"]);
     if (streak >= 30) badges.push(["🔥", "Железная серия", `${streak} дней подряд без пропусков`]);
     else if (streak >= 7) badges.push(["🔥", "Неделя без пропусков", `${streak} дней подряд`]);
-    if (newYear) badges.push(["🎄", "Новогодняя ночь", "Писать Claude под бой курантов — сильно"]);
+    if (newYear) badges.push(["🎄", "Новогодняя ночь", `Писать ${AI_NAME} под бой курантов — сильно`]);
     if (fri13) badges.push(["👻", "Пятница, 13-е", "Суеверия? Не слышали"]);
     if (longest.msgs.length >= 100) badges.push(["🏃", "Марафонец", "100+ сообщений в одном чате"]);
-    if (humanWords > aiWords) badges.push(["🗣️", "Главный говорун", "Ты пишешь больше, чем Claude"]);
+    if (humanWords > aiWords) badges.push(["🗣️", "Главный говорун", `Ты пишешь больше, чем ${AI_NAME}`]);
     if (convs.length === 42) badges.push(["🌌", "Ровно 42", "Ответ на главный вопрос жизни, Вселенной и всего такого"]);
     if (convs.length >= 365) badges.push(["📅", "Чат в день", "365+ разговоров"]);
     return {
@@ -468,9 +537,9 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
   ];
   function chronotype(h) {
     if (h >= 5 && h < 11) return ["Жаворонок", "Твои лучшие идеи приходят до обеда."];
-    if (h >= 11 && h < 18) return ["Дневной режим", "Ты работаешь с Claude в разгар дня, как с коллегой."];
+    if (h >= 11 && h < 18) return ["Дневной режим", `Ты работаешь с ${AI_NAME} в разгар дня, как с коллегой.`];
     if (h >= 18 && h < 23) return ["Вечерний творец", "Главное начинается, когда день заканчивается."];
-    return ["Ночная сова", "Пока все спят, вы с Claude что-то придумываете."];
+    return ["Ночная сова", `Пока все спят, вы с ${AI_NAME} что-то придумываете.`];
   }
   function buildSlides(s) {
     const novels = s.aiWords / 80000, pages = s.humanWords / 300;
@@ -482,21 +551,21 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     const num = (n) => `<span data-to="${Math.round(n)}">${fmt(n)}</span>`;
     const T = THEMES;
     const list = [
-      { theme: T[0], motif: "bubbles", html: () => `<div class="stack"><div class="kicker">${esc(period)}</div><div class="mid">Вот как прошло твоё время с&nbsp;Claude</div></div>
+      { theme: T[0], motif: "bubbles", html: () => `<div class="stack"><div class="kicker">${esc(period)}</div><div class="mid">Вот как прошло твоё время с&nbsp;${esc(AI_NAME)}</div></div>
              <div class="big">${num(s.activeDays)}</div>
              <div class="stack"><div class="txt">${plural(s.activeDays, "день", "дня", "дней")}, когда в чате было хотя бы одно твоё сообщение. Листай дальше.</div></div>` },
       { theme: T[1], motif: "rings", html: () => `<div class="kicker">Разговоры</div>
              <div class="stack"><div class="big">${num(s.chats)}</div><div class="mid">${plural(s.chats, "чат", "чата", "чатов")}</div></div>
-             <div class="txt">В них ${fmt(s.humanMsgs)} ${plural(s.humanMsgs, "твоё сообщение", "твоих сообщения", "твоих сообщений")} и ${fmt(s.aiMsgs)} ${plural(s.aiMsgs, "ответ", "ответа", "ответов")} Claude.</div>` },
+             <div class="txt">В них ${fmt(s.humanMsgs)} ${plural(s.humanMsgs, "твоё сообщение", "твоих сообщения", "твоих сообщений")} и ${fmt(s.aiMsgs)} ${plural(s.aiMsgs, "ответ", "ответа", "ответов")} ${esc(AI_NAME)}.</div>` },
       { theme: T[2], motif: "letters", html: () => `<div class="kicker">Слова</div>
-             <div class="stack"><div class="big">${num(s.aiWords)}</div><div class="mid">${plural(s.aiWords, "слово", "слова", "слов")} написал для тебя Claude</div></div>
+             <div class="stack"><div class="big">${num(s.aiWords)}</div><div class="mid">${plural(s.aiWords, "слово", "слова", "слов")} написал для тебя ${esc(AI_NAME)}</div></div>
              <div class="stack"><div class="txt">Это ≈ ${novels >= 1 ? novels.toFixed(1).replace(".", ",") + " романа" : Math.max(1, Math.round(novels * 100)) + "% романа"}. А твоих слов ${fmt(s.humanWords)}, примерно ${fmt(Math.max(1, pages))} ${plural(Math.max(1, pages), "страница", "страницы", "страниц")} книги.</div><div class="fine">Средний роман ≈ 80 000 слов, страница ≈ 300 слов</div></div>` },
       { theme: T[3], motif: night ? "stars" : "rays", html: () => `<div class="kicker">Твой ритм</div>
              <div class="stack"><div class="mid">${chronoTitle}</div><div class="txt">${chronoLine} Чаще всего ты пишешь около <b>${String(s.peakHour).padStart(2, "0")}:00</b>.</div></div>
              <div><div class="hours">${s.hours.map((n, i) => `<span class="${i === s.peakHour ? "peak" : ""}" style="--i:${i};height:${Math.max(3, (n / maxH) * 100)}%"></span>`).join("")}</div>
              <div class="hours-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div></div>` },
       { theme: T[4], motif: "squares", html: () => `<div class="kicker">Неделя</div>
-             <div class="stack"><div class="mid">Твой день: ${dayName}</div><div class="txt">В ${DAYS_ACC[(s.peakDay + 1) % 7]} ты пишешь Claude чаще всего. Рекордная серия: <b>${fmt(s.streak)} ${plural(s.streak, "день", "дня", "дней")} подряд</b>.</div></div>
+             <div class="stack"><div class="mid">Твой день: ${dayName}</div><div class="txt">В ${DAYS_ACC[(s.peakDay + 1) % 7]} ты пишешь ${esc(AI_NAME)} чаще всего. Рекордная серия: <b>${fmt(s.streak)} ${plural(s.streak, "день", "дня", "дней")} подряд</b>.</div></div>
              <div class="week">${s.week.map((n, i) => `<div><span style="--i:${i};opacity:${(0.18 + 0.82 * (n / maxW)).toFixed(2)}"></span>${DAYS_SHORT[i]}</div>`).join("")}</div>` },
       { theme: T[5], motif: "bubbles", html: () => `<div class="kicker">Главные темы</div>
              ${s.topics.length ? `<ol class="rank">${s.topics.map(([w, n], i) => `<li style="--i:${i}"><small>${i + 1}</small><span>${esc(w)}</span><small>×${n}</small></li>`).join("")}</ol>` : `<div class="mid">Темы слишком разные, чтобы выбрать главную</div>`}
@@ -518,12 +587,12 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
              <div class="sum">
                <div style="--i:0"><b>${num(s.chats)}</b><small>чатов</small></div>
                <div style="--i:1"><b>${num(s.activeDays)}</b><small>активных дней</small></div>
-               <div style="--i:2"><b>${num(s.aiWords)}</b><small>слов от Claude</small></div>
+               <div style="--i:2"><b>${num(s.aiWords)}</b><small>слов от ${esc(AI_NAME)}</small></div>
                <div style="--i:3"><b>${num(s.streak)}</b><small>дней подряд</small></div>
                <div style="--i:4"><b>${String(s.peakHour).padStart(2, "0")}:00</b><small>пиковый час</small></div>
                <div style="--i:5"><b>≈${num(s.savedHours)} ч</b><small>сэкономлено</small></div>
              </div>
-             <div class="stack"><div class="fine">Экономия: слова Claude, написанные вручную со скоростью ≈ 20 слов в минуту. Это оценка, а не точный замер.</div>${CREATOR.handle ? `<div class="kicker">Свой компромат → ссылка в ${esc(CREATOR.handle)}</div>` : ""}</div>` });
+             <div class="stack"><div class="fine">Экономия: слова ${esc(AI_NAME)}, написанные вручную со скоростью ≈ 20 слов в минуту. Это оценка, а не точный замер.</div>${CREATOR.handle ? `<div class="kicker">Свой компромат → ссылка в ${esc(CREATOR.handle)}</div>` : ""}</div>` });
     return list;
   }
 
@@ -555,7 +624,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     // stats grid
     const cells = [
       [fmt(s.chats), plural(s.chats, "чат", "чата", "чатов")], [fmt(s.activeDays), "активных дней"],
-      [fmt(s.aiWords), "слов от Claude"], [fmt(s.streak), "дней подряд"],
+      [fmt(s.aiWords), `слов от ${AI_NAME}`], [fmt(s.streak), "дней подряд"],
       [String(s.peakHour).padStart(2, "0") + ":00", "пиковый час"], ["≈" + fmt(s.savedHours) + " ч", "сэкономлено"],
     ];
     const gx = (W - 2 * P - 40) / 2, top = 1030, rowH = 205;
@@ -569,7 +638,7 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     });
     // footer
     x.globalAlpha = .7; x.font = `400 24px ${MONO}`;
-    wrap("Экономия — оценка: слова Claude, написанные вручную со скоростью ≈ 20 слов в минуту.", W - 2 * P).forEach((l, i) => x.fillText(l, P, 1700 + i * 32));
+    wrap(`Экономия — оценка: слова ${AI_NAME}, написанные вручную со скоростью ≈ 20 слов в минуту.`, W - 2 * P).forEach((l, i) => x.fillText(l, P, 1700 + i * 32));
     x.globalAlpha = 1;
     const cta = CREATOR.handle ? `Свой компромат → ссылка в ${CREATOR.handle}` : "Собери свой компромат";
     x.font = `700 36px ${BODY}`; x.fillText(cta, P, H - P);
@@ -724,11 +793,11 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
   $("prev").onclick = () => go(-1);
   $("next").onclick = () => go(1);
   $("pause").onclick = () => setPaused(!paused);
-  $("demo").onclick = () => { load(computeStats(sampleConvs()), true); status("Показан пример с выдуманными данными."); };
+  $("demo").onclick = () => { AI_NAME = "Claude"; load(computeStats(sampleConvs()), true); status("Показан пример с выдуманными данными."); };
   $("copy").onclick = async () => {
     if (!stats) return;
     const s = stats;
-    const text = `Мой компромат за год с ИИ${isSample ? " (пример)" : ""}:\n• ${fmt(s.chats)} чатов, ${fmt(s.activeDays)} активных дней\n• Claude написал для меня ${fmt(s.aiWords)} слов\n• Рекордная серия: ${fmt(s.streak)} дн. подряд\n• Пиковый час: ${String(s.peakHour).padStart(2, "0")}:00\n• Мой тип: ${s.arch.title}\n• Сэкономлено ≈ ${fmt(s.savedHours)} ч${CREATOR.handle ? `\nСобери свой: ссылка в ${CREATOR.handle}` : ""}`;
+    const text = `Мой компромат за год с ИИ${isSample ? " (пример)" : ""}:\n• ${fmt(s.chats)} ${plural(s.chats, "чат", "чата", "чатов")}, ${fmt(s.activeDays)} ${plural(s.activeDays, "активный день", "активных дня", "активных дней")}\n• ${AI_NAME} написал для меня ${fmt(s.aiWords)} слов\n• Рекордная серия: ${fmt(s.streak)} дн. подряд\n• Пиковый час: ${String(s.peakHour).padStart(2, "0")}:00\n• Мой тип: ${s.arch.title}\n• Сэкономлено ≈ ${fmt(s.savedHours)} ч${CREATOR.handle ? `\nСобери свой: ссылка в ${CREATOR.handle}` : ""}`;
     try { await navigator.clipboard.writeText(text); status("Итоги скопированы. Вставь их в пост или сообщение."); }
     catch { status("Не получилось скопировать автоматически. Сделай скриншот последней карточки.", true); }
   };
@@ -768,16 +837,21 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
     }
     if (Array.isArray(val)) {
       if (val.some((c) => c && (Array.isArray(c.chat_messages) || Array.isArray(c.messages)))) { out.convs.push(...val); return; }
+      if (val.some((c) => c && c.mapping && typeof c.mapping === "object")) {   // ChatGPT / DeepSeek
+        for (const c of val) { if (!c || !c.mapping) continue; const kind = mappingKind(c), conv = fromMapping(c, kind); if (conv.msgs.length) { out.mapped.push(conv); out.sources[kind] = (out.sources[kind] || 0) + 1; } }
+        return;
+      }
       for (const v of val) collect(v, out);
       return;
     }
     if (Array.isArray(val.chat_messages)) { out.convs.push(val); return; }
+    if (val.mapping && typeof val.mapping === "object") { collect([val], out); return; }
     if (Array.isArray(val.conversations)) collect(val.conversations, out);
   }
   async function readFiles(files) {
     status(files.length > 1 ? `Читаю ${files.length} файла…` : `Читаю «${files[0].name}»…`);
     $("manifest").hidden = true;
-    const out = { convs: [], links: [], manifest: false };
+    const out = { convs: [], mapped: [], sources: {}, links: [], manifest: false };
     try {
       for (const file of files) {
         if (/\.zip$/i.test(file.name) || file.type.includes("zip")) {
@@ -788,23 +862,33 @@ body.retro .story::after { content: ""; position: absolute; inset: 0; z-index: 5
             try { collect(JSON.parse(await entry.async("string")), out); } catch {}
           }
         } else {
-          try { collect(JSON.parse(await file.text()), out); } catch { throw new Error(`«${file.name}» не похож на экспорт Claude. Нужен ZIP из письма.`); }
+          try { collect(JSON.parse(await file.text()), out); } catch { throw new Error(`«${file.name}» не похож на экспорт чатов. Нужен ZIP или conversations.json из Claude, ChatGPT или DeepSeek.`); }
         }
       }
-      if (!out.convs.length) {
+      if (!out.convs.length && !out.mapped.length) {
         if (out.manifest) {
           $("manifest-links").innerHTML = out.links.map((l) => `<a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener">Скачать ${esc(l.name)}</a>`).join("") || "<p class=\"hint\">В оглавлении нет ссылки на разговоры. Запроси экспорт заново.</p>";
           $("manifest").hidden = false; status("Это оглавление экспорта. Скачай архив с разговорами по кнопке ниже и загрузи его сюда.", true);
           return;
         }
-        throw new Error("В файле не нашлось разговоров. Нужен архив conversations-000.zip из экспорта Claude.");
+        throw new Error("В файле не нашлось разговоров. Загрузи архив экспорта из Claude, ChatGPT или DeepSeek.");
       }
-      const s = computeStats(normalize(out.convs));
+      const claude = out.convs.length ? normalize(out.convs) : [];
+      if (claude.length) out.sources.Claude = claude.length;
+      AI_NAME = Object.entries(out.sources).sort((a, b) => b[1] - a[1])[0][0];
+      const s = computeStats([...claude, ...out.mapped]);
       load(s, false);
       status(`Готово: ${fmt(s.chats)} ${plural(s.chats, "чат", "чата", "чатов")}, ${fmt(s.humanMsgs + s.aiMsgs)} ${plural(s.humanMsgs + s.aiMsgs, "сообщение", "сообщения", "сообщений")}.`);
       if (matchMedia("(max-width: 860px)").matches) story.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
     } catch (e) { status(e.message || "Не получилось прочитать файл.", true); }
   }
+  // export source tabs: Claude / ChatGPT / DeepSeek
+  const TABS = ["claude", "chatgpt", "deepseek"];
+  function showTab(k, focus) {
+    for (const t of TABS) { const on = t === k, b = $("tab-" + t); b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; $("panel-" + t).hidden = !on; if (on && focus) b.focus(); }
+  }
+  TABS.forEach((k, i) => { const b = $("tab-" + k); b.onclick = () => showTab(k);
+    b.onkeydown = (e) => { if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); showTab(TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length], true); } }; });
   $("file").addEventListener("change", (e) => { const f = [...e.target.files]; if (f.length) readFiles(f); e.target.value = ""; });
   const drop = $("drop");
   ["dragenter", "dragover"].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
