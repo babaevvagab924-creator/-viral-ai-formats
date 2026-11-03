@@ -102,6 +102,8 @@ section{min-height:100vh;padding:0 40px;display:flex;flex-direction:column;justi
 .contact h2{font-size:clamp(56px,11vw,190px);font-weight:200;letter-spacing:-.065em;line-height:.9}
 .contact h2 em{font-style:normal;color:#ffffff60}
 .contact .links{margin-top:50px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.mail{display:inline-block;margin-top:40px;font-size:clamp(22px,3vw,40px);font-weight:300;letter-spacing:-.02em;border-bottom:1px solid var(--line);padding-bottom:6px;transition:border-color .4s}
+.mail:hover{border-color:var(--fg)}
 .pill{border:1px solid var(--line);border-radius:99px;padding:16px 30px;font-size:13px;letter-spacing:.15em;text-transform:uppercase;transition:background .4s,color .4s,border-color .4s;backdrop-filter:blur(8px);background:#0a0a0a55}
 .pill:hover{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 footer{position:relative;z-index:10;display:flex;justify-content:space-between;padding:30px 40px 90px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
@@ -185,16 +187,17 @@ footer{position:relative;z-index:10;display:flex;justify-content:space-between;p
 
   <section class="contact" id="contact">
     <div class="label reveal">Контакты</div>
-    <h2 class="reveal">Давайте<br><em>создадим</em> что-то</h2>
+    <h2 class="reveal">Давайте<br><em>создадим</em> <span style="white-space:nowrap">что‑то</span></h2>
+    <a class="mail reveal" href="mailto:lbenia@vk.com">lbenia@vk.com</a>
     <div class="links reveal">
-      <a class="pill" href="#">Telegram ↗</a>
-      <a class="pill" href="#">Instagram ↗</a>
+      <a class="pill" href="https://t.me/leonchik1234" target="_blank" rel="noopener">Telegram ↗</a>
+      <a class="pill" href="https://instagram.com/leonario23" target="_blank" rel="noopener">Instagram ↗</a>
       <a class="pill" href="https://github.com/babaevvagab924-creator" target="_blank" rel="noopener">GitHub ↗</a>
-      <a class="pill" href="#">Резюме PDF ↓</a>
+      <a class="pill" href="mailto:lbenia@vk.com">Почта ✉</a>
     </div>
   </section>
 </main>
-<footer><span>© 2026 Leon</span><span>Сделано с нейросетями и терпением</span></footer>
+<footer><span>© 2026 Leon</span><span>@leonchik1234 · @leonario23</span></footer>
 
 <script type="module">
 import * as THREE from './vendor/three.module.min.js';
