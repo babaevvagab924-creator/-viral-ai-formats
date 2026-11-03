@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Leon — AI Creator</title>
+<meta name="description" content="AI-видео, вирусные Reels и сторителлинг. Портфолио и резюме.">
+<style>
+@font-face{font-family:Inter;src:local("Inter"),local("Inter Regular")}
+:root{--bg:#0a0a0a;--fg:#e9e7e2;--mut:#8d8a84;--line:#ffffff1f}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--fg);font-family:Inter,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body{overflow-x:hidden}
+::selection{background:var(--fg);color:var(--bg)}
+a{color:inherit;text-decoration:none}
+
+/* --- WebGL stage + film layers --- */
+#gl{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
+.grain{position:fixed;inset:-50%;z-index:3;pointer-events:none;opacity:.09;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain .6s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}40%{transform:translate(3%,-5%)}60%{transform:translate(-6%,-2%)}80%{transform:translate(5%,4%)}100%{transform:translate(0,0)}}
+.vig{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 35%,#000000d0 100%)}
+
+/* --- loader --- */
+.loader{position:fixed;inset:0;z-index:50;background:#0a0a0a;display:flex;flex-direction:column;justify-content:flex-end;padding:40px;transition:opacity 1.2s ease,visibility 1.2s}
+.loader.done{opacity:0;visibility:hidden}
+.loader .num{font-size:clamp(80px,16vw,240px);font-weight:200;letter-spacing:-.06em;line-height:.8}
+.loader .bar{height:1px;background:var(--line);margin-top:28px;position:relative;overflow:hidden}
+.loader .bar i{position:absolute;inset:0;background:var(--fg);transform-origin:left;transform:scaleX(0)}
+.loader small{display:flex;justify-content:space-between;margin-top:14px;font-size:11px;letter-spacing:.25em;color:var(--mut);text-transform:uppercase}
+
+/* --- chrome --- */
+header{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:26px 40px;font-size:12px;letter-spacing:.2em;text-transform:uppercase}
+.brand{display:flex;align-items:center;gap:12px;font-weight:500;letter-spacing:.12em}
+.brand svg{width:22px;height:22px}
+header nav{display:flex;gap:34px}
+header nav a{position:relative;color:var(--mut);transition:color .4s}
+header nav a:hover{color:var(--fg)}
+header nav a::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:1px;background:var(--fg);transform:scaleX(0);transform-origin:right;transition:transform .5s cubic-bezier(.7,0,.2,1)}
+header nav a:hover::after{transform:scaleX(1);transform-origin:left}
+.side{position:fixed;z-index:20;bottom:30px;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--mut)}
+.side.l{left:40px}.side.r{right:40px;display:flex;align-items:center;gap:14px}
+.prog{width:120px;height:1px;background:var(--line);position:relative}
+.prog i{position:absolute;inset:0;background:var(--fg);transform-origin:left;transform:scaleX(0)}
+.cursor{position:fixed;z-index:60;left:0;top:0;width:34px;height:34px;border:1px solid #ffffff80;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);transition:width .35s,height .35s,background .35s,border-color .35s;mix-blend-mode:difference}
+.cursor.on{width:76px;height:76px;background:#fff;border-color:#fff}
+@media (hover:none){.cursor{display:none}}
+
+/* --- content --- */
+main{position:relative;z-index:10}
+section{min-height:100vh;padding:0 40px;display:flex;flex-direction:column;justify-content:center}
+.hero{align-items:center;text-align:center}
+.hero h1{font-weight:200;font-size:clamp(64px,13vw,230px);letter-spacing:-.065em;line-height:.9;display:flex;align-items:center;gap:.12em}
+.hero h1 .mk{width:.62em;height:.62em;flex:none}
+.hero h1 em{font-style:normal;color:#ffffff70}
+.hero p{margin-top:28px;font-size:12px;letter-spacing:.35em;text-transform:uppercase;color:var(--mut)}
+.mask{display:inline-block;overflow:hidden;vertical-align:bottom;padding:0 .02em .16em;margin-bottom:-.16em}
+.mask>span{display:inline-block;transform:translateY(105%);transition:transform 1.4s cubic-bezier(.16,1,.3,1)}
+.ready .mask>span{transform:none}
+.fade{opacity:0;filter:blur(12px);transition:opacity 1.6s ease,filter 1.6s ease}
+.ready .fade{opacity:1;filter:none}
+
+.label{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--mut);margin-bottom:40px;display:flex;gap:18px;align-items:center}
+.label::before{content:"";width:40px;height:1px;background:var(--mut)}
+
+.manifest p{font-size:clamp(30px,4.6vw,72px);font-weight:300;letter-spacing:-.035em;line-height:1.08;max-width:1200px}
+.manifest .w{color:#ffffff26;transition:color .5s}
+.manifest .w.lit{color:var(--fg)}
+
+.rows{border-top:1px solid var(--line);max-width:1400px}
+.row{display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:24px;padding:34px 0;border-bottom:1px solid var(--line);position:relative;overflow:hidden;cursor:pointer}
+.row::before{content:"";position:absolute;inset:0;background:var(--fg);transform:scaleY(0);transform-origin:bottom;transition:transform .6s cubic-bezier(.7,0,.2,1);z-index:-1}
+.row:hover::before{transform:scaleY(1)}
+.row>*{transition:color .4s,transform .6s cubic-bezier(.16,1,.3,1)}
+.row:hover>*{color:var(--bg)}
+.row:hover h3{transform:translateX(24px)}
+.row .n{font-size:12px;letter-spacing:.2em;color:var(--mut)}
+.row h3{font-size:clamp(28px,4.4vw,68px);font-weight:300;letter-spacing:-.04em}
+.row .t{font-size:13px;color:var(--mut);text-align:right;letter-spacing:.05em}
+.reveal{opacity:0;transform:translateY(40px);transition:opacity 1.2s ease,transform 1.2s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+.preview{position:fixed;z-index:15;left:0;top:0;width:340px;height:440px;pointer-events:none;border-radius:4px;overflow:hidden;opacity:0;transform:translate(-50%,-50%) scale(.85) rotate(-4deg);transition:opacity .4s,transform .6s cubic-bezier(.16,1,.3,1)}
+.preview.on{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}
+.preview canvas{width:100%;height:100%;display:block}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);max-width:1400px}
+.stat{padding:40px 30px 40px 0;border-right:1px solid var(--line)}
+.stat:last-child{border-right:0;padding-left:30px}
+.stat:nth-child(2){padding-left:30px}
+.stat b{display:block;font-size:clamp(56px,8vw,130px);font-weight:200;letter-spacing:-.06em;line-height:1}
+.stat span{font-size:12px;letter-spacing:.25em;text-transform:uppercase;color:var(--mut)}
+
+.timeline .item{display:grid;grid-template-columns:200px 1fr 1fr;gap:24px;padding:30px 0;border-bottom:1px solid var(--line);max-width:1400px}
+.timeline .item:first-of-type{border-top:1px solid var(--line)}
+.timeline .y{color:var(--mut);font-size:13px;letter-spacing:.15em}
+.timeline h4{font-size:26px;font-weight:300;letter-spacing:-.02em}
+.timeline p{color:var(--mut);font-size:15px;line-height:1.6}
+
+.contact{align-items:center;text-align:center}
+.contact h2{font-size:clamp(56px,11vw,190px);font-weight:200;letter-spacing:-.065em;line-height:.9}
+.contact h2 em{font-style:normal;color:#ffffff60}
+.contact .links{margin-top:50px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.pill{border:1px solid var(--line);border-radius:99px;padding:16px 30px;font-size:13px;letter-spacing:.15em;text-transform:uppercase;transition:background .4s,color .4s,border-color .4s;backdrop-filter:blur(8px);background:#0a0a0a55}
+.pill:hover{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+footer{position:relative;z-index:10;display:flex;justify-content:space-between;padding:30px 40px 90px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
+
+@media (max-width:760px){
+  header,section,footer{padding-left:16px;padding-right:16px}
+  header nav{display:none}
+  .side.l{left:16px}.side.r{right:16px}
+  .row{grid-template-columns:44px 1fr}.row .t{display:none}
+  .stats{grid-template-columns:1fr}.stat,.stat:nth-child(2),.stat:last-child{border-right:0;border-bottom:1px solid var(--line);padding:30px 0}
+  .timeline .item{grid-template-columns:1fr;gap:8px}
+  .preview{display:none}
+}
+@media (prefers-reduced-motion:reduce){.grain{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="vig"></div>
+<div class="grain"></div>
+<div class="cursor" id="cursor"></div>
+<div class="preview" id="preview"><canvas id="pv" width="340" height="440"></canvas></div>
+
+<div class="loader" id="loader">
+  <div class="num" id="lnum">000</div>
+  <div class="bar"><i id="lbar"></i></div>
+  <small><span>Leon — портфолио</span><span>Загрузка сцены</span></small>
+</div>
+
+<header>
+  <a class="brand" href="#top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 3v17h11"/><path d="M11 3h6"/></svg>
+    Leon
+  </a>
+  <nav><a href="#work">Работы</a><a href="#about">Обо мне</a><a href="#exp">Опыт</a><a href="#contact">Контакты</a></nav>
+</header>
+<div class="side l">AI-видео · с 2023</div>
+<div class="side r"><span id="pct">00</span><div class="prog"><i id="prog"></i></div></div>
+
+<main id="top">
+  <section class="hero">
+    <h1>
+      <span class="mask"><span><svg class="mk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M7 3v17h11"/><path d="M11 3h6"/></svg></span></span>
+      <span class="mask"><span style="transition-delay:.1s">Leon</span></span><span class="mask"><span style="transition-delay:.22s"><em>.ai</em></span></span>
+    </h1>
+    <p class="fade" style="transition-delay:.6s">AI-видео · Вирусные Reels · Сторителлинг</p>
+  </section>
+
+  <section class="manifest" id="about">
+    <div class="label reveal">Обо мне</div>
+    <p id="manifest">Я превращаю нейросети в истории, которые люди досматривают до конца. Сценарий, генерация, монтаж и звук — один человек, одна идея, миллионы просмотров.</p>
+  </section>
+
+  <section id="work">
+    <div class="label reveal">Избранные работы</div>
+    <div class="rows">
+      <div class="row reveal" data-seed="1"><span class="n">01</span><h3>Что если котики правили миром</h3><span class="t">Reels · 3.2M</span></div>
+      <div class="row reveal" data-seed="2"><span class="n">02</span><h3>Город через сто лет</h3><span class="t">TikTok · 1.8M</span></div>
+      <div class="row reveal" data-seed="3"><span class="n">03</span><h3>AI-кампания для кофейни</h3><span class="t">Реклама · бренд</span></div>
+      <div class="row reveal" data-seed="4"><span class="n">04</span><h3>История в шестьдесят секунд</h3><span class="t">Shorts · 900K</span></div>
+      <div class="row reveal" data-seed="5"><span class="n">05</span><h3>Клип для артиста</h3><span class="t">Музыка · клип</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="label reveal">В цифрах</div>
+    <div class="stats">
+      <div class="stat reveal"><b data-n="12" data-s="M+">0</b><span>просмотров</span></div>
+      <div class="stat reveal"><b data-n="240">0</b><span>роликов</span></div>
+      <div class="stat reveal"><b data-n="35">0</b><span>брендов</span></div>
+    </div>
+  </section>
+
+  <section class="timeline" id="exp">
+    <div class="label reveal">Опыт</div>
+    <div class="item reveal"><span class="y">2025 — сейчас</span><h4>Независимый AI-креатор</h4><p>Вирусные форматы для Reels, TikTok и Shorts. Свой набор из 24 форматов коротких видео.</p></div>
+    <div class="item reveal"><span class="y">2024 — 2025</span><h4>Контент-продюсер</h4><p>Сценарии и AI-визуал для брендов: от идеи до публикации и аналитики.</p></div>
+    <div class="item reveal"><span class="y">2023 — 2024</span><h4>Монтажёр коротких видео</h4><p>CapCut, After Effects, звук и цвет. Первые миллионы просмотров.</p></div>
+  </section>
+
+  <section class="contact" id="contact">
+    <div class="label reveal">Контакты</div>
+    <h2 class="reveal">Давайте<br><em>создадим</em> что-то</h2>
+    <div class="links reveal">
+      <a class="pill" href="#">Telegram ↗</a>
+      <a class="pill" href="#">Instagram ↗</a>
+      <a class="pill" href="#">TikTok ↗</a>
+      <a class="pill" href="#">Резюме PDF ↓</a>
+    </div>
+  </section>
+</main>
+<footer><span>© 2026 Leon</span><span>Сделано с нейросетями и терпением</span></footer>
+
+<script type="module">
+import * as THREE from './vendor/three.module.min.js';
+
+/* ---------- noise ---------- */
+const P=new Uint8Array(512);{const p=[...Array(256).keys()];let s=7;for(let i=255;i>0;i--){s=(s*16807)%2147483647;const j=s%(i+1);[p[i],p[j]]=[p[j],p[i]]}for(let i=0;i<512;i++)P[i]=p[i&255]}
+const fade=t=>t*t*t*(t*(t*6-15)+10),lerp=(a,b,t)=>a+(b-a)*t;
+function grad(h,x,y){const v=h&3;return((v&1)?-x:x)+((v&2)?-y:y)}
+function noise(x,y){const X=Math.floor(x)&255,Y=Math.floor(y)&255;x-=Math.floor(x);y-=Math.floor(y);const u=fade(x),v=fade(y),a=P[X]+Y,b=P[X+1]+Y;
+  return lerp(lerp(grad(P[a],x,y),grad(P[b],x-1,y),u),lerp(grad(P[a+1],x,y-1),grad(P[b+1],x-1,y-1),u),v)}
+function fbm(x,y,o=6){let s=0,a=.5,f=1;for(let i=0;i<o;i++){s+=a*noise(x*f,y*f);f*=2.03;a*=.5}return s}
+function ridge(x,y){let s=0,a=.5,f=1;for(let i=0;i<5;i++){let n=1-Math.abs(noise(x*f,y*f));s+=a*n*n;f*=2.1;a*=.5}return s}
+
+/* ---------- scene ---------- */
+const canvas=document.getElementById('gl');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
+renderer.setSize(innerWidth,innerHeight);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0a0a0a);
+scene.fog=new THREE.FogExp2(0x0a0a0a,.055);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.05,120);
+
+// terrain — volcanic rock field
+const SEG=innerWidth<760?180:300,SIZE=60;
+const geo=new THREE.PlaneGeometry(SIZE,SIZE*1.6,SEG,Math.round(SEG*1.6));
+geo.rotateX(-Math.PI/2);
+const pos=geo.attributes.position;
+for(let i=0;i<pos.count;i++){
+  const x=pos.getX(i),z=pos.getZ(i);
+  const r=ridge(x*.09+3,z*.09-2)*2.6;
+  const d=fbm(x*.35,z*.35,5)*.55;
+  const fine=fbm(x*2.2,z*2.2,3)*.08;
+  const valley=Math.min(1,Math.abs(x)/6);           // keep a soft path for the camera
+  pos.setY(i,(r+d)*(.25+.75*valley)+fine-1.2);
+}
+geo.computeVertexNormals();
+const rock=new THREE.MeshStandardMaterial({color:0x8a8782,roughness:.96,metalness:0,flatShading:false});
+const terrain=new THREE.Mesh(geo,rock);scene.add(terrain);
+
+// hero monolith — a fractured shard floating above the path
+const shardGeo=new THREE.IcosahedronGeometry(1.4,24);
+{const p=shardGeo.attributes.position,v=new THREE.Vector3();
+ for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const n=fbm(v.x*.9+5,v.y*.9+v.z*.6,5);const r=1+n*.55+ridge(v.x*.6,v.z*.6+v.y*.3)*.25;
+   v.multiplyScalar(r);v.y*=.55;v.x*=1.5;p.setXYZ(i,v.x,v.y,v.z)}
+ shardGeo.computeVertexNormals()}
+const shard=new THREE.Mesh(shardGeo,new THREE.MeshStandardMaterial({color:0xb5b2ab,roughness:.9}));
+shard.position.set(0,.9,-6);shard.rotation.set(.25,.6,.1);scene.add(shard);
+
+// light
+scene.add(new THREE.AmbientLight(0xffffff,.08));
+const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(-6,4,-8);scene.add(key);
+const rim=new THREE.DirectionalLight(0xffffff,.6);rim.position.set(8,2,6);scene.add(rim);
+const glow=new THREE.PointLight(0xffffff,6,10,1.6);glow.position.set(0,2.5,-4);scene.add(glow);
+
+// ash particles
+const sprite=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.35,'rgba(255,255,255,.5)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
+const N=innerWidth<760?900:2200;
+const ash=new THREE.BufferGeometry(),ap=new Float32Array(N*3),seed=new Float32Array(N);
+for(let i=0;i<N;i++){ap[i*3]=(Math.random()-.5)*24;ap[i*3+1]=Math.random()*8-1;ap[i*3+2]=-Math.random()*40+6;seed[i]=Math.random()*100}
+ash.setAttribute('position',new THREE.BufferAttribute(ap,3));
+const ashMat=new THREE.PointsMaterial({size:.05,map:sprite,transparent:true,depthWrite:false,opacity:.85,color:0xdedad2,blending:THREE.AdditiveBlending,sizeAttenuation:true});
+const ashPts=new THREE.Points(ash,ashMat);scene.add(ashPts);
+// a few large out-of-focus flakes for depth
+const B=60,bg=new THREE.BufferGeometry(),bp=new Float32Array(B*3);
+for(let i=0;i<B;i++){bp[i*3]=(Math.random()-.5)*8;bp[i*3+1]=Math.random()*4;bp[i*3+2]=-Math.random()*20+4}
+bg.setAttribute('position',new THREE.BufferAttribute(bp,3));
+const bokeh=new THREE.Points(bg,new THREE.PointsMaterial({size:.45,map:sprite,transparent:true,depthWrite:false,opacity:.12,color:0xffffff,blending:THREE.AdditiveBlending}));
+scene.add(bokeh);
+
+/* ---------- interaction state ---------- */
+let mx=0,my=0,smx=0,smy=0,scrollP=0,sP=0,intro=0;
+const cursor=document.getElementById('cursor');
+addEventListener('pointermove',e=>{mx=e.clientX/innerWidth*2-1;my=e.clientY/innerHeight*2-1;cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';preview.style.left=e.clientX+'px';preview.style.top=e.clientY+'px'});
+const maxScroll=()=>document.documentElement.scrollHeight-innerHeight;
+addEventListener('scroll',()=>{scrollP=Math.min(1,scrollY/maxScroll())});
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
+
+/* ---------- render loop ---------- */
+const clock=new THREE.Clock();
+const prog=document.getElementById('prog'),pct=document.getElementById('pct');
+function tick(){
+  const t=clock.getElapsedTime(),dt=Math.min(clock.getDelta(),.05);
+  smx+=(mx-smx)*.04;smy+=(my-smy)*.04;sP+=(scrollP-sP)*.06;
+  intro+=(1-intro)*.012;
+  // camera flies low over the rocks as you scroll
+  const z=6-sP*34+(1-intro)*4;
+  camera.position.set(Math.sin(sP*4)*1.2+smx*.6,.35+sP*1.6+(1-intro)*1.5-smy*.25,z);
+  camera.lookAt(smx*1.5+Math.sin(sP*4+.6)*1.2,.4+sP*.3,z-8);
+  shard.rotation.y=.6+t*.06+sP*2;shard.position.y=.9+Math.sin(t*.6)*.12;
+  glow.position.z=z-9;glow.intensity=4+Math.sin(t*.8)*1.2;
+  key.intensity=3.2*intro;
+  // drifting ash
+  const a=ash.attributes.position.array;
+  for(let i=0;i<N;i++){const s=seed[i];a[i*3]+=Math.sin(t*.3+s)*.0025+.004;a[i*3+1]-=.0035+((s*13)%1)*.004;a[i*3+2]+=Math.cos(t*.2+s)*.002;
+    if(a[i*3+1]<-1.5){a[i*3+1]=7;a[i*3]=camera.position.x+(Math.random()-.5)*24;a[i*3+2]=camera.position.z-Math.random()*30}
+    if(a[i*3+2]>camera.position.z+2)a[i*3+2]-=32}
+  ash.attributes.position.needsUpdate=true;
+  bokeh.position.set(camera.position.x*.9,camera.position.y-.5,camera.position.z-6);bokeh.rotation.y=t*.02;
+  renderer.render(scene,camera);
+  prog.style.transform=`scaleX(${scrollP})`;pct.textContent=String(Math.round(scrollP*100)).padStart(2,'0');
+  requestAnimationFrame(tick);
+}
+
+/* ---------- loader ---------- */
+const lnum=document.getElementById('lnum'),lbar=document.getElementById('lbar');
+let L=0;renderer.compile(scene,camera);
+(function load(){L+=(101-L)*.06+.3;const v=Math.min(100,Math.floor(L));lnum.textContent=String(v).padStart(3,'0');lbar.style.transform=`scaleX(${v/100})`;
+  if(v<100)return setTimeout(load,30);
+  setTimeout(()=>{document.getElementById('loader').classList.add('done');document.body.classList.add('ready')},300)})();
+tick();
+
+/* ---------- manifesto words light up with scroll ---------- */
+const man=document.getElementById('manifest');
+man.innerHTML=man.textContent.split(' ').map(w=>`<span class="w">${w}</span>`).join(' ');
+const words=[...man.querySelectorAll('.w')];
+addEventListener('scroll',()=>{const r=man.getBoundingClientRect();const p=Math.min(1,Math.max(0,(innerHeight*.85-r.top)/(r.height+innerHeight*.35)));
+  const k=Math.floor(p*words.length*1.1);words.forEach((w,i)=>w.classList.toggle('lit',i<k))});
+
+/* ---------- reveals + counters ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;e.target.classList.add('in');
+  const b=e.target.querySelector('[data-n]');if(b){const T=+b.dataset.n,s=performance.now(),suf=b.dataset.s||'';
+    (function f(n){const p=Math.min((n-s)/2000,1);b.textContent=Math.round(T*(1-Math.pow(1-p,4)))+suf;if(p<1)requestAnimationFrame(f)})(s)}
+  io.unobserve(e.target)}),{threshold:.15});
+document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%5)*.08+'s';io.observe(el)});
+
+/* ---------- hover preview: generated monochrome "frames" ---------- */
+const preview=document.getElementById('preview'),pv=document.getElementById('pv').getContext('2d');
+function frame(seed){const W=340,H=440,img=pv.createImageData(W,H),d=img.data;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const nx=x/W,ny=y/H;
+    const v=ridge(nx*3+seed*7,ny*3-seed*3)*.9+fbm(nx*8+seed,ny*8,4)*.4-ny*.35+.15;
+    const g=Math.max(0,Math.min(255,(v*220)+(Math.random()-.5)*28));const i=(y*W+x)*4;d[i]=d[i+1]=d[i+2]=g;d[i+3]=255}
+  pv.putImageData(img,0,0);pv.fillStyle='#fff';pv.font='300 13px Inter,Arial';pv.fillText('0'+seed+' — кадр проекта',18,H-20)}
+const cache={};
+document.querySelectorAll('.row').forEach(r=>{
+  r.addEventListener('mouseenter',()=>{const s=+r.dataset.seed;if(!cache[s]){frame(s);cache[s]=pv.getImageData(0,0,340,440)}else pv.putImageData(cache[s],0,0);preview.classList.add('on');cursor.classList.add('on')});
+  r.addEventListener('mouseleave',()=>{preview.classList.remove('on');cursor.classList.remove('on')})});
+document.querySelectorAll('a,.pill').forEach(a=>{a.addEventListener('mouseenter',()=>cursor.classList.add('on'));a.addEventListener('mouseleave',()=>cursor.classList.remove('on'))});
+</script>
+</body>
+</html>
